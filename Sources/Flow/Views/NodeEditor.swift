@@ -8,10 +8,10 @@ import SwiftUI
 /// using a View for each Node.
 public struct NodeEditor: View {
     /// Data model.
-    @Binding var patch: Patch
+    @ObservedObject var patch: Patch
 
     /// Selected nodes.
-    @Binding var selection: Set<NodeIndex>
+    @Binding var selection: Set<NodeId>
 
     /// State for all gestures.
     @GestureState var dragInfo = DragInfo.none
@@ -20,7 +20,7 @@ public struct NodeEditor: View {
     @StateObject var textCache = TextCache()
 
     /// Node moved handler closure.
-    public typealias NodeMovedHandler = (_ index: NodeIndex,
+    public typealias NodeMovedHandler = (_ index: NodeId,
                                          _ location: CGPoint) -> Void
 
     /// Called when a node is moved.
@@ -51,11 +51,11 @@ public struct NodeEditor: View {
     /// - Parameters:
     ///   - patch: Patch to display.
     ///   - selection: Set of nodes currently selected.
-    public init(patch: Binding<Patch>,
-                selection: Binding<Set<NodeIndex>>,
+    public init(patch: Patch,
+                selection: Binding<Set<NodeId>>,
                 layout: LayoutConstants = LayoutConstants())
     {
-        _patch = patch
+        self.patch = patch
         _selection = selection
         self.layout = layout
     }

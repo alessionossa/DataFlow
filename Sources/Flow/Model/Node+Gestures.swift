@@ -11,20 +11,20 @@ extension Node {
         return result
     }
 
-    func hitTest(nodeIndex: Int, point: CGPoint, layout: LayoutConstants) -> Patch.HitTestResult? {
-        for (inputIndex, _) in inputs.enumerated() {
+    func hitTest(nodeId: NodeId, point: CGPoint, layout: LayoutConstants) -> Patch.HitTestResult? {
+        for (inputIndex, input) in inputs.enumerated() {
             if inputRect(input: inputIndex, layout: layout).contains(point) {
-                return .input(nodeIndex, inputIndex)
+                return .input(nodeId, input.id)
             }
         }
-        for (outputIndex, _) in outputs.enumerated() {
+        for (outputIndex, output) in outputs.enumerated() {
             if outputRect(output: outputIndex, layout: layout).contains(point) {
-                return .output(nodeIndex, outputIndex)
+                return .output(nodeId, output.id)
             }
         }
 
         if rect(layout: layout).contains(point) {
-            return .node(nodeIndex)
+            return .node(nodeId)
         }
 
         return nil

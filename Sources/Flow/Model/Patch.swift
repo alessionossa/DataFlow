@@ -2,17 +2,18 @@
 
 import CoreGraphics
 import Foundation
+import SwiftUI
 
 /// Data model for Flow.
 ///
 /// Write a function to generate a `Patch` from your own data model
 /// as well as a function to update your data model when the `Patch` changes.
 /// Use SwiftUI's `onChange(of:)` to monitor changes, or use `NodeEditor.onNodeAdded`, etc.
-public struct Patch: Equatable {
-    public var nodes: [Node]
-    public var wires: Set<Wire>
+public class Patch: ObservableObject {
+    @Published public var nodes: Set<Node>
+    @Published public var wires: Set<Wire>
 
-    public init(nodes: [Node], wires: Set<Wire>) {
+    public init(nodes: Set<Node>, wires: Set<Wire>) {
         self.nodes = nodes
         self.wires = wires
     }

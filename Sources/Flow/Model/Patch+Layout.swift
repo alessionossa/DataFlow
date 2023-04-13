@@ -8,30 +8,37 @@ public extension Patch {
     ///
     /// - Returns: Height of all nodes in subtree.
     @discardableResult
-    mutating func recursiveLayout(
-        nodeIndex: NodeIndex,
+    func recursiveLayout(
+        nodeId: NodeId,
         at point: CGPoint,
         layout: LayoutConstants = LayoutConstants(),
-        consumedNodeIndexes: Set<NodeIndex> = [],
+        consumedNodeIndexes: Set<NodeId> = [],
         nodePadding: Bool = false
     ) -> (aggregateHeight: CGFloat,
-          consumedNodeIndexes: Set<NodeIndex>)
+          consumedNodeIndexes: Set<NodeId>)
     {
-        nodes[nodeIndex].position = point
+        var node = nodes[withId: nodeId]
+        node.position = point
+        nodes.update(with: node)
 
         // XXX: super slow
         let incomingWires = wires.filter {
-            $0.input.nodeIndex == nodeIndex
-        }.sorted(by: { $0.input.portIndex < $1.input.portIndex })
+            $0.input.nodeId == nodeId
+        }.sorted(by: { lhs, rhs in
+            guard let lhsIndex = node.indexOfInput(lhs.input),
+                  let rhsIndex = node.indexOfInput(rhs.input)
+            else { return false }
+            return lhsIndex < rhsIndex
+        })
 
         var consumedNodeIndexes = consumedNodeIndexes
 
         var height: CGFloat = 0
         for wire in incomingWires {
             let addPadding = wire == incomingWires.last
-            let ni = wire.output.nodeIndex
+            let ni = wire.output.nodeId
             guard !consumedNodeIndexes.contains(ni) else { continue }
-            let rl = recursiveLayout(nodeIndex: ni,
+            let rl = recursiveLayout(nodeId: ni,
                                      at: CGPoint(x: point.x - layout.nodeWidth - layout.nodeSpacing,
                                                  y: point.y + height),
                                      layout: layout,
@@ -42,7 +49,7 @@ public extension Patch {
             consumedNodeIndexes.formUnion(rl.consumedNodeIndexes)
         }
 
-        let nodeHeight = nodes[nodeIndex].rect(layout: layout).height
+        let nodeHeight = node.rect(layout: layout).height
         let aggregateHeight = max(height, nodeHeight) + (nodePadding ? layout.nodeSpacing : 0)
         return (aggregateHeight: aggregateHeight,
                 consumedNodeIndexes: consumedNodeIndexes)
@@ -54,8 +61,8 @@ public extension Patch {
     ///   - origin: Top-left origin coordinate.
     ///   - columns: Array of columns each comprised of an array of node indexes.
     ///   - layout: Layout constants.
-    mutating func stackedLayout(at origin: CGPoint = .zero,
-                                _ columns: [[NodeIndex]],
+    func stackedLayout(at origin: CGPoint = .zero,
+                                _ columns: [[NodeId]],
                                 layout: LayoutConstants = LayoutConstants())
     {
         for column in columns.indices {
@@ -63,13 +70,15 @@ public extension Patch {
             var yOffset: CGFloat = 0
 
             let xPos = origin.x + (CGFloat(column) * (layout.nodeWidth + layout.nodeSpacing))
-            for nodeIndex in nodeStack {
-                nodes[nodeIndex].position = .init(
+            for nodeId in nodeStack {
+                var node = nodes[withId: nodeId]
+                node.position = .init(
                     x: xPos,
                     y: origin.y + yOffset
                 )
+                nodes.update(with: node)
 
-                let nodeHeight = nodes[nodeIndex].rect(layout: layout).height
+                let nodeHeight = nodes[withId: nodeId].rect(layout: layout).height
                 yOffset += nodeHeight
                 if column != columns.indices.last {
                     yOffset += layout.nodeSpacing

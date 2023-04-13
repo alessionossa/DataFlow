@@ -122,8 +122,8 @@ extension NodeEditor {
         var resolvedInputColors = [PortType: GraphicsContext.Shading]()
         var resolvedOutputColors = [PortType: GraphicsContext.Shading]()
 
-        for (nodeIndex, node) in patch.nodes.enumerated() {
-            let offset = self.offset(for: nodeIndex)
+        for node in patch.nodes {
+            let offset = self.offset(for: node.id)
             let rect = node.rect(layout: layout).offset(by: offset)
 
             guard rect.intersects(viewport) else { continue }
@@ -138,7 +138,7 @@ extension NodeEditor {
             case let .selection(rect: selectionRect):
                 selected = rect.intersects(selectionRect)
             default:
-                selected = selection.contains(nodeIndex)
+                selected = selection.contains(node.id)
             }
 
             cx.fill(bg, with: selected ? selectedShading : unselectedShading)
@@ -178,7 +178,7 @@ extension NodeEditor {
                     index: i,
                     offset: offset,
                     portShading: inputShading(input.type, &resolvedInputColors, cx),
-                    isConnected: connectedInputs.contains(InputID(nodeIndex, i))
+                    isConnected: connectedInputs.contains(InputID(node, \.[i]))
                 )
             }
 
@@ -189,7 +189,7 @@ extension NodeEditor {
                     index: i,
                     offset: offset,
                     portShading: outputShading(output.type, &resolvedOutputColors, cx),
-                    isConnected: connectedOutputs.contains(OutputID(nodeIndex, i))
+                    isConnected: connectedOutputs.contains(OutputID(node, \.[i]))
                 )
             }
         }
@@ -204,17 +204,21 @@ extension NodeEditor {
             hideWire = nil
         }
         for wire in patch.wires where wire != hideWire {
-            let fromPoint = self.patch.nodes[wire.output.nodeIndex].outputRect(
-                output: wire.output.portIndex,
+            let fromNode = self.patch.nodes[withId: wire.output.nodeId]
+            guard let portIndexInFromNode = fromNode.indexOfOutput(wire.output) else { continue }
+            let fromPoint = fromNode.outputRect(
+                output: portIndexInFromNode,
                 layout: self.layout
             )
-            .offset(by: self.offset(for: wire.output.nodeIndex)).center
+                .offset(by: self.offset(for: wire.output.nodeId)).center
 
-            let toPoint = self.patch.nodes[wire.input.nodeIndex].inputRect(
-                input: wire.input.portIndex,
+            let toNode = self.patch.nodes[withId: wire.input.nodeId]
+            guard let portIndexInToNode = toNode.indexOfInput(wire.input) else { continue }
+            let toPoint = toNode.inputRect(
+                input: portIndexInToNode,
                 layout: self.layout
             )
-            .offset(by: self.offset(for: wire.input.nodeIndex)).center
+            .offset(by: self.offset(for: wire.input.nodeId)).center
 
             let bounds = CGRect(origin: fromPoint, size: toPoint - fromPoint)
             if viewport.intersects(bounds) {
@@ -226,9 +230,9 @@ extension NodeEditor {
 
     func drawDraggedWire(cx: GraphicsContext) {
         if case let .wire(output: output, offset: offset, _) = dragInfo {
-            let outputRect = self.patch
-                .nodes[output.nodeIndex]
-                .outputRect(output: output.portIndex, layout: self.layout)
+            let fromNode = self.patch.nodes[withId: output.nodeId]
+            guard let portIndexInFromNode = fromNode.indexOfOutput(output) else { return }
+            let outputRect = fromNode.outputRect(output: portIndexInFromNode, layout: self.layout)
             let gradient = self.gradient(for: output)
             cx.strokeWire(from: outputRect.center, to: outputRect.center + offset, gradient: gradient)
         }
@@ -243,8 +247,8 @@ extension NodeEditor {
 
     func gradient(for outputID: OutputID) -> Gradient {
         let portType = patch
-            .nodes[outputID.nodeIndex]
-            .outputs[outputID.portIndex]
+            .nodes[withId: outputID.nodeId]
+            .outputs[outputID.portId]
             .type
         return style.gradient(for: portType) ?? .init(colors: [.gray])
     }

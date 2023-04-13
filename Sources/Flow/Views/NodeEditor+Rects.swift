@@ -4,16 +4,16 @@ import SwiftUI
 
 public extension NodeEditor {
     /// Offset to apply to a node based on selection and gesture state.
-    func offset(for idx: NodeIndex) -> CGSize {
-        if patch.nodes[idx].locked {
+    func offset(for nodeId: NodeId) -> CGSize {
+        if patch.nodes[withId: nodeId].locked {
             return .zero
         }
         switch dragInfo {
-        case let .node(index: index, offset: offset):
-            if idx == index {
+        case let .node(id: id, offset: offset):
+            if nodeId == id {
                 return offset
             }
-            if selection.contains(index), selection.contains(idx) {
+            if selection.contains(id), selection.contains(nodeId) {
                 // Offset other selected node only if we're dragging the
                 // selection.
                 return offset
@@ -25,36 +25,40 @@ public extension NodeEditor {
     }
 
     /// Search for inputs.
-    func findInput(node: Node, point: CGPoint, type: PortType) -> PortIndex? {
-        node.inputs.enumerated().first { portIndex, input in
+    func findInput(node: Node, point: CGPoint, type: PortType) -> PortId? {
+        let inputPort = node.inputs.enumerated().first { portIndex, input in
             input.type == type && node.inputRect(input: portIndex, layout: layout).contains(point)
-        }?.0
+        }?.element
+        
+        return inputPort?.id
     }
 
     /// Search for an input in the whole patch.
     func findInput(point: CGPoint, type: PortType) -> InputID? {
         // Search nodes in reverse to find nodes drawn on top first.
-        for (nodeIndex, node) in patch.nodes.enumerated().reversed() {
-            if let portIndex = findInput(node: node, point: point, type: type) {
-                return InputID(nodeIndex, portIndex)
+        for node in patch.nodes.reversed() {
+            if let portId = findInput(node: node, point: point, type: type) {
+                return InputID(node.id, portId)
             }
         }
         return nil
     }
 
     /// Search for outputs.
-    func findOutput(node: Node, point: CGPoint) -> PortIndex? {
-        node.outputs.enumerated().first { portIndex, _ in
+    func findOutput(node: Node, point: CGPoint) -> PortId? {
+        let outputPort = node.outputs.enumerated().first { portIndex, _ in
             node.outputRect(output: portIndex, layout: layout).contains(point)
-        }?.0
+        }?.element
+        
+        return outputPort?.id
     }
 
     /// Search for an output in the whole patch.
     func findOutput(point: CGPoint) -> OutputID? {
         // Search nodes in reverse to find nodes drawn on top first.
-        for (nodeIndex, node) in patch.nodes.enumerated().reversed() {
-            if let portIndex = findOutput(node: node, point: point) {
-                return OutputID(nodeIndex, portIndex)
+        for node in patch.nodes.reversed() {
+            if let portId = findOutput(node: node, point: point) {
+                return OutputID(node.id, portId)
             }
         }
         return nil

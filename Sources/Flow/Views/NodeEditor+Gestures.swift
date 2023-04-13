@@ -6,7 +6,7 @@ extension NodeEditor {
     /// State for all gestures.
     enum DragInfo {
         case wire(output: OutputID, offset: CGSize = .zero, hideWire: Wire? = nil)
-        case node(index: NodeIndex, offset: CGSize = .zero)
+        case node(id: NodeId, offset: CGSize = .zero)
         case selection(rect: CGRect = .zero)
         case none
     }
@@ -74,20 +74,27 @@ extension NodeEditor {
                 case .none:
                     dragInfo = .selection(rect: CGRect(a: startLocation,
                                                        b: location))
-                case let .node(nodeIndex):
-                    dragInfo = .node(index: nodeIndex, offset: translation)
-                case let .output(nodeIndex, portIndex):
-                    dragInfo = DragInfo.wire(output: OutputID(nodeIndex, portIndex), offset: translation)
-                case let .input(nodeIndex, portIndex):
-                    let node = patch.nodes[nodeIndex]
+                case let .node(nodeId):
+                    dragInfo = .node(id: nodeId, offset: translation)
+                case let .output(nodeId, portId):
+                    dragInfo = DragInfo.wire(output: OutputID(nodeId, portId), offset: translation)
+                case let .input(nodeId, portId):
                     // Is a wire attached to the input?
-                    if let attachedWire = attachedWire(inputID: InputID(nodeIndex, portIndex)) {
-                        let offset = node.inputRect(input: portIndex, layout: layout).center
-                            - patch.nodes[attachedWire.output.nodeIndex].outputRect(
-                                output: attachedWire.output.portIndex,
-                                layout: layout
-                            ).center
-                            + translation
+                    let inputId = InputID(nodeId, portId)
+                    if let attachedWire = attachedWire(inputID: inputId) {
+                        
+                        let inputNode = patch.nodes[withId: nodeId]
+                        let inputPortIndex = inputNode.indexOfInput(inputId)
+                        
+                        
+                        let outputNode = patch.nodes[withId: attachedWire.output.nodeId]
+                        let outputIndex = outputNode.indexOfOutput(attachedWire.output)
+                        
+                        guard let outputIndex, let inputPortIndex else { return }
+                        let inputCenter = inputNode.inputRect(input: inputPortIndex, layout: layout).center
+                        let outputCenter = outputNode.outputRect(output: outputIndex, layout: layout).center
+                        
+                        let offset = inputCenter - outputCenter + translation
                         dragInfo = .wire(output: attachedWire.output,
                                          offset: offset,
                                          hideWire: attachedWire)
@@ -111,30 +118,30 @@ extension NodeEditor {
                             in: selectionRect,
                             layout: layout
                         )
-                    case let .node(nodeIndex):
+                    case let .node(nodeId):
                         patch.moveNode(
-                            nodeIndex: nodeIndex,
+                            nodeId: nodeId,
                             offset: translation,
                             nodeMoved: self.nodeMoved
                         )
-                        if selection.contains(nodeIndex) {
-                            for idx in selection where idx != nodeIndex {
+                        if selection.contains(nodeId) {
+                            for idx in selection where idx != nodeId {
                                 patch.moveNode(
-                                    nodeIndex: idx,
+                                    nodeId: idx,
                                     offset: translation,
                                     nodeMoved: self.nodeMoved
                                 )
                             }
                         }
-                    case let .output(nodeIndex, portIndex):
-                        let type = patch.nodes[nodeIndex].outputs[portIndex].type
+                    case let .output(nodeId, portId):
+                        let type = patch.nodes[withId: nodeId].outputs[portId].type
                         if let input = findInput(point: location, type: type) {
-                            connect(OutputID(nodeIndex, portIndex), to: input)
+                            connect(OutputID(nodeId, portId), to: input)
                         }
-                    case let .input(nodeIndex, portIndex):
-                        let type = patch.nodes[nodeIndex].inputs[portIndex].type
+                    case let .input(nodeId, portId):
+                        let type = patch.nodes[withId: nodeId].inputs[portId].type
                         // Is a wire attached to the input?
-                        if let attachedWire = attachedWire(inputID: InputID(nodeIndex, portIndex)) {
+                        if let attachedWire = attachedWire(inputID: InputID(nodeId, portId)) {
                             patch.wires.remove(attachedWire)
                             wireRemoved(attachedWire)
                             if let input = findInput(point: location, type: type) {
@@ -146,9 +153,9 @@ extension NodeEditor {
                     // If we haven't moved far, then this is effectively a tap.
                     switch hitResult {
                     case .none:
-                        selection = Set<NodeIndex>()
+                        selection = Set<NodeId>()
                     case let .node(nodeIndex):
-                        selection = Set<NodeIndex>([nodeIndex])
+                        selection = Set<NodeId>([nodeIndex])
                     default: break
                     }
                 }
