@@ -1,6 +1,7 @@
 // Copyright AudioKit. All Rights Reserved. Revision History at http://github.com/AudioKit/Flow/
 
 import Foundation
+import Combine
 
 /// Ports are identified by index within a node.
 public typealias PortIndex = Int
@@ -15,7 +16,7 @@ public struct InputID: Equatable, Hashable {
     /// - Parameters:
     ///   - node: The node the input belongs
     ///   - portKeyPath: The keypath to access the Port on Node's input
-    public init(_ node: Node, _ portKeyPath: KeyPath<[Port], Port>) {
+    public init(_ node: any Node, _ portKeyPath: KeyPath<[any PortProtocol], any PortProtocol>) {
         self.nodeId = node.id
         self.portId = node.inputs[keyPath: portKeyPath].id
     }
@@ -39,7 +40,7 @@ public struct OutputID: Equatable, Hashable {
     /// - Parameters:
     ///   - node: The node the output belongs
     ///   - portKeyPath: The keypath to access the Port on Node's outputs
-    public init(_ node: Node, _ portKeyPath: KeyPath<[Port], Port>) {
+    public init(_ node: any Node, _ portKeyPath: KeyPath<[any PortProtocol], any PortProtocol>) {
         self.nodeId = node.id
         self.portId = node.outputs[keyPath: portKeyPath].id
     }
@@ -66,24 +67,82 @@ public enum PortType: Equatable, Hashable {
     case custom(String)
 }
 
+public protocol PortProtocol: AnyObject, ObservableObject {
+    associatedtype T: Any
+    
+    var id: PortId { get }
+    var name: String { get }
+    var type: PortType { get }
+    var value: T? { get set }
+    var valueType: T.Type { get }
+    
+    func setPublisher(from port: (any PortProtocol)?) throws
+}
+
 /// Information for either an input or an output.
-public struct Port: Equatable, Hashable, Identifiable {
+public class Port<T>: Identifiable, PortProtocol where T: Equatable {
     public let id: PortId = UUID()
     public let name: String
     public let type: PortType
-
-    /// Initialize the port with a name and type
-    /// - Parameters:
-    ///   - name: Descriptive label of the port
-    ///   - type: Type of port
-    public init(name: String, type: PortType = .signal) {
+    @Published public var value: T?
+    public var valueType: T.Type
+    
+    private var portValueCancellable: Cancellable?
+    
+    enum PortError: Error {
+        case valueTypeMismatch
+    }
+    
+    public init(name: String, type: PortType = .signal, publisher: Published<T?>.Publisher? = nil, valueType: T.Type) {
         self.name = name
         self.type = type
+        self.valueType = valueType
+    }
+    
+    public func setPublisher(from port: (any PortProtocol)?) throws {
+        if let port {
+            guard let port = port as? Port<T> else { throw PortError.valueTypeMismatch }
+            self.portValueCancellable = port.$value.removeDuplicates().sink { [weak self] newValue in
+                self?.value = newValue
+            }
+        } else {
+            portValueCancellable?.cancel()
+            portValueCancellable = nil
+        }
     }
 }
 
-extension Sequence where Element == Port {
-    subscript(id: PortId) -> Port {
+public struct PortsContainer: Collection {
+    private var ports: [any PortProtocol]
+    
+    public var startIndex: Int { ports.startIndex }
+    public var endIndex: Int { ports.endIndex }
+    
+    public init(_ ports: [any PortProtocol]) {
+        self.ports = ports
+    }
+    
+    public func index(after i: Int) -> Int {
+        ports.index(after: i)
+    }
+    
+    public subscript(index: Array<PortProtocol>.Index) -> any PortProtocol {
+        ports[index]
+    }
+    
+    public subscript(withId id: PortId) -> any PortProtocol {
+        get {
+            return ports[withId: id]
+        }
+    }
+    
+    public subscript(keyPath keyPath: KeyPath<[any PortProtocol], any PortProtocol>) -> any PortProtocol {
+        ports[keyPath: keyPath]
+    }
+}
+
+public extension Sequence where Element == any PortProtocol {
+    subscript(withId id: PortId) -> any PortProtocol {
         get {
             guard let port = first(where: { $0.id == id }) else {
                 fatalError("Port with identifier \(id.uuidString) not found")

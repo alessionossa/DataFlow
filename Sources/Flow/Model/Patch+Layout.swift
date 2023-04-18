@@ -17,9 +17,8 @@ public extension Patch {
     ) -> (aggregateHeight: CGFloat,
           consumedNodeIndexes: Set<NodeId>)
     {
-        var node = nodes[withId: nodeId]
+        let node = nodes[withId: nodeId]
         node.position = point
-        nodes.update(with: node)
 
         // XXX: super slow
         let incomingWires = wires.filter {
@@ -71,14 +70,13 @@ public extension Patch {
 
             let xPos = origin.x + (CGFloat(column) * (layout.nodeWidth + layout.nodeSpacing))
             for nodeId in nodeStack {
-                var node = nodes[withId: nodeId]
+                let node = nodes[withId: nodeId]
                 node.position = .init(
                     x: xPos,
                     y: origin.y + yOffset
                 )
-                nodes.update(with: node)
 
-                let nodeHeight = nodes[withId: nodeId].rect(layout: layout).height
+                let nodeHeight = node.rect(layout: layout).height
                 yOffset += nodeHeight
                 if column != columns.indices.last {
                     yOffset += layout.nodeSpacing

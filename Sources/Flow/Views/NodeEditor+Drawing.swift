@@ -41,7 +41,7 @@ extension NodeEditor {
     
     func drawInputPort(
         cx: GraphicsContext,
-        node: Node,
+        node: any Node,
         index: Int,
         offset: CGSize,
         portShading: GraphicsContext.Shading,
@@ -68,7 +68,7 @@ extension NodeEditor {
     
     func drawOutputPort(
         cx: GraphicsContext,
-        node: Node,
+        node: any Node,
         index: Int,
         offset: CGSize,
         portShading: GraphicsContext.Shading,
@@ -247,8 +247,7 @@ extension NodeEditor {
 
     func gradient(for outputID: OutputID) -> Gradient {
         let portType = patch
-            .nodes[withId: outputID.nodeId]
-            .outputs[outputID.portId]
+            .nodes[portId: outputID]
             .type
         return style.gradient(for: portType) ?? .init(colors: [.gray])
     }

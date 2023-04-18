@@ -25,7 +25,7 @@ public extension NodeEditor {
     }
 
     /// Search for inputs.
-    func findInput(node: Node, point: CGPoint, type: PortType) -> PortId? {
+    func findInput(node: any Node, point: CGPoint, type: PortType) -> PortId? {
         let inputPort = node.inputs.enumerated().first { portIndex, input in
             input.type == type && node.inputRect(input: portIndex, layout: layout).contains(point)
         }?.element
@@ -45,7 +45,7 @@ public extension NodeEditor {
     }
 
     /// Search for outputs.
-    func findOutput(node: Node, point: CGPoint) -> PortId? {
+    func findOutput(node: any Node, point: CGPoint) -> PortId? {
         let outputPort = node.outputs.enumerated().first { portIndex, _ in
             node.outputRect(output: portIndex, layout: layout).contains(point)
         }?.element

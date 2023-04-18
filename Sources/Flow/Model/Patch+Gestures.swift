@@ -6,8 +6,8 @@ import Foundation
 extension Patch {
     enum HitTestResult {
         case node(NodeId)
-        case input(NodeId, PortId)
-        case output(NodeId, PortId)
+        case input(InputID)
+        case output(OutputID)
     }
 
     /// Hit test a point against the whole patch.
@@ -26,11 +26,10 @@ extension Patch {
         offset: CGSize,
         nodeMoved: NodeEditor.NodeMovedHandler
     ) {
-        var node = nodes[withId: nodeId]
+        let node = nodes[withId: nodeId]
         if !node.locked {
-            node.position += offset
-            nodes.update(with: node)
-            nodeMoved(nodeId, node.position)
+            let newPosition = node.translate(by: offset)
+            nodeMoved(nodeId, newPosition)
         }
     }
 

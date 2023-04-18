@@ -1,6 +1,7 @@
 // Copyright AudioKit. All Rights Reserved. Revision History at http://github.com/AudioKit/Flow/
 
 import SwiftUI
+import os.log
 
 extension NodeEditor {
     /// State for all gestures.
@@ -24,6 +25,15 @@ extension NodeEditor {
             return result
         }
         patch.wires.insert(wire)
+        
+        let output = patch.nodes[portId: wire.output]
+        let input = patch.nodes[portId: wire.input]
+        do {
+            try input.setPublisher(from: output)
+        } catch {
+            Logger().error("\(error.localizedDescription, privacy: .public)")
+        }
+        
         wireAdded(wire)
     }
 
@@ -76,16 +86,13 @@ extension NodeEditor {
                                                        b: location))
                 case let .node(nodeId):
                     dragInfo = .node(id: nodeId, offset: translation)
-                case let .output(nodeId, portId):
-                    dragInfo = DragInfo.wire(output: OutputID(nodeId, portId), offset: translation)
-                case let .input(nodeId, portId):
+                case let .output(outputID):
+                    dragInfo = DragInfo.wire(output: outputID, offset: translation)
+                case let .input(inputId):
                     // Is a wire attached to the input?
-                    let inputId = InputID(nodeId, portId)
                     if let attachedWire = attachedWire(inputID: inputId) {
-                        
-                        let inputNode = patch.nodes[withId: nodeId]
+                        let inputNode = patch.nodes[withId: inputId.nodeId]
                         let inputPortIndex = inputNode.indexOfInput(inputId)
-                        
                         
                         let outputNode = patch.nodes[withId: attachedWire.output.nodeId]
                         let outputIndex = outputNode.indexOfOutput(attachedWire.output)
@@ -133,15 +140,15 @@ extension NodeEditor {
                                 )
                             }
                         }
-                    case let .output(nodeId, portId):
-                        let type = patch.nodes[withId: nodeId].outputs[portId].type
+                    case let .output(outputId):
+                        let type = patch.nodes[portId: outputId].type
                         if let input = findInput(point: location, type: type) {
-                            connect(OutputID(nodeId, portId), to: input)
+                            connect(outputId, to: input)
                         }
-                    case let .input(nodeId, portId):
-                        let type = patch.nodes[withId: nodeId].inputs[portId].type
+                    case let .input(inputId):
+                        let type = patch.nodes[portId: inputId].type
                         // Is a wire attached to the input?
-                        if let attachedWire = attachedWire(inputID: InputID(nodeId, portId)) {
+                        if let attachedWire = attachedWire(inputID: inputId) {
                             patch.wires.remove(attachedWire)
                             wireRemoved(attachedWire)
                             if let input = findInput(point: location, type: type) {

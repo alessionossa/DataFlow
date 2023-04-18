@@ -12,48 +12,27 @@ public typealias NodeId = UUID
 /// Using indices as IDs has proven to be easy and fast for our use cases. The ``Patch`` should be
 /// generated from your own data model, not used as your data model, so there isn't a requirement that
 /// the indices be consistent across your editing operations (such as deleting nodes).
-public struct Node: Hashable, Equatable {
-    public let id: NodeId = UUID()
-    public var name: String
-    public var position: CGPoint
-    public var titleBarColor: Color
+public protocol Node: AnyObject, ObservableObject, Hashable, Equatable {
+    associatedtype MiddleContent: View
+    
+    var id: NodeId { get }
+    var name: String { get set }
+    var position: CGPoint? { get set }
+    var titleBarColor: Color { get set }
 
     /// Is the node position fixed so it can't be edited in the UI?
-    public var locked = false
+    var locked: Bool { get set }
 
-    public var inputs: [Port]
-    public var outputs: [Port]
+    var inputs: PortsContainer { get }
+    @ViewBuilder var middleView: MiddleContent? { get }
+    var outputs: PortsContainer { get }
+    
+    func indexOfOutput(_ port: OutputID) -> Array<PortProtocol>.Index?
+    
+    func indexOfInput(_ port: InputID) -> Array<PortProtocol>.Index?
+}
 
-    @_disfavoredOverload
-    public init(name: String,
-                position: CGPoint = .zero,
-                titleBarColor: Color = Color.clear,
-                locked: Bool = false,
-                inputs: [Port] = [],
-                outputs: [Port] = [])
-    {
-        self.name = name
-        self.position = position
-        self.titleBarColor = titleBarColor
-        self.locked = locked
-        self.inputs = inputs
-        self.outputs = outputs
-    }
-
-    public init(name: String,
-                position: CGPoint = .zero,
-                titleBarColor: Color = Color.clear,
-                locked: Bool = false,
-                inputs: [String] = [],
-                outputs: [String] = [])
-    {
-        self.name = name
-        self.position = position
-        self.titleBarColor = titleBarColor
-        self.locked = locked
-        self.inputs = inputs.map { Port(name: $0) }
-        self.outputs = outputs.map { Port(name: $0) }
-    }
+extension Node {
     
     public static func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.id == rhs.id
@@ -63,17 +42,63 @@ public struct Node: Hashable, Equatable {
         hasher.combine(id)
     }
     
-    func indexOfOutput(_ port: OutputID) -> Array<Port>.Index? {
+    public func indexOfOutput(_ port: OutputID) -> Array<PortProtocol>.Index? {
         self.outputs.firstIndex { $0.id == port.portId }
     }
     
-    func indexOfInput(_ port: InputID) -> Array<Port>.Index? {
+    public func indexOfInput(_ port: InputID) -> Array<PortProtocol>.Index? {
         self.inputs.firstIndex { $0.id == port.portId }
     }
 }
 
-extension Sequence where Element == Node {
-    subscript(withId id: NodeId) -> Node {
+public class AnyNode: Node, Hashable {
+    private var node: any Node
+    
+    public var id: NodeId { node.id }
+    
+    public var name: String {
+        get { node.name }
+        set { node.name = newValue }
+    }
+    
+    public var position: CGPoint? {
+        get { node.position }
+        set { node.position = newValue }
+    }
+    
+    public var titleBarColor: Color {
+        get { node.titleBarColor }
+        set { node.titleBarColor = newValue }
+    }
+    
+    public var locked: Bool {
+        get { node.locked }
+        set { node.locked = newValue }
+    }
+    
+    public var inputs: PortsContainer {
+        get { node.inputs }
+    }
+    
+    public var outputs: PortsContainer {
+        get { node.outputs }
+    }
+    
+    public var middleView: AnyView? {
+        if let nodeMiddleView = node.middleView {
+            return AnyView(nodeMiddleView)
+        } else {
+            return nil
+        }
+    }
+    
+    public init(_ node: some Node) {
+        self.node = node
+    }
+}
+
+public extension Sequence where Element: Node {
+    subscript(withId id: NodeId) -> Element {
         get {
             guard let node = first(where: { $0.id == id }) else {
                 fatalError("Node with identifier \(id.uuidString) not found")
@@ -81,5 +106,27 @@ extension Sequence where Element == Node {
             
             return node
         }
+    }
+    
+    subscript(portId outputId: OutputID) -> any PortProtocol {
+        get {
+            return self[withId: outputId.nodeId]
+                .outputs[withId: outputId.portId]
+        }
+    }
+    
+    subscript(portId inputId: InputID) -> any PortProtocol {
+        get {
+            return self[withId: inputId.nodeId]
+                .inputs[withId: inputId.portId]
+        }
+    }
+}
+
+public extension Sequence where Element == any Node {
+    var asAnyNodeSet: Set<AnyNode> {
+        Set(self.map({ node in
+            AnyNode(node)
+        }))
     }
 }

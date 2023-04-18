@@ -1,38 +1,81 @@
 import Flow
 import SwiftUI
 
-func simplePatch() -> Patch {
-    let generator1 = Node(name: "generator", titleBarColor: Color.cyan, outputs: ["out"])
-    let processor2 = Node(name: "processor", titleBarColor: Color.red, inputs: ["in"], outputs: ["out"])
-    let generator3 = Node(name: "generator", titleBarColor: Color.cyan, outputs: ["out"])
-    let processor4 = Node(name: "processor", titleBarColor: Color.red, inputs: ["in"], outputs: ["out"])
-    let mixer5 = Node(name: "mixer", titleBarColor: Color.gray, inputs: ["in1", "in2"], outputs: ["out"])
-    let output6 = Node(name: "output", titleBarColor: Color.purple, inputs: ["in"])
+class IntNode: Node {
+    var id: NodeId = UUID()
 
-    let nodes = Set([generator1, processor2, generator3, processor4, mixer5, output6])
+    var name: String
 
-    let wires = Set([Wire(from: OutputID(generator1, \.[0]), to: InputID(processor2, \.[0])),
-        Wire(from: OutputID(processor2, \.[0]), to: InputID(mixer5, \.[0])),
-        Wire(from: OutputID(generator3, \.[0]), to: InputID(processor4, \.[0])),
-        Wire(from: OutputID(processor4, \.[0]), to: InputID(mixer5, \.[1])),
-        Wire(from: OutputID(mixer5, \.[0]), to: InputID(output6, \.[0]))
+    var position: CGPoint?
+
+    var titleBarColor: Color = .brown
+
+    var locked: Bool = false
+
+    var inputs: PortsContainer = PortsContainer([
+        Port(name: "Value", valueType: Int.self)
+    ])
+    
+    var outputs: PortsContainer = PortsContainer([
+        Port(name: "Value", valueType: Int.self)
     ])
 
-    var patch = Patch(nodes: nodes, wires: wires)
-    patch.recursiveLayout(nodeId: output6.id, at: CGPoint(x: 800, y: 50))
+    @Published var value: Int? = nil
+    
+    @State var valueState: Int? = nil
+    
+    var valueBinding: Binding<String> {
+        Binding<String>(
+            get: { self.value?.description ?? "" },
+            set: { newValue in
+                self.value = Int.init(newValue)
+            }
+        )
+    }
+
+    var middleView: (some View)? {
+        HStack {
+            Text("The connected value is \(value?.description ?? "")")
+            TextField("Integer", text: valueBinding)
+        }
+    }
+    
+    init(name: String, position: CGPoint? = nil) {
+        self.name = name
+        self.position = position
+        
+        if let intInput = inputs[0] as? Flow.Port<Int> {
+            intInput.$value.assign(to: &$value)
+        }
+        
+        if let intOutput = outputs[0] as? Flow.Port<Int> {
+            $value.assign(to: &intOutput.$value)
+        }
+    }
+}
+
+func simplePatch() -> Patch {
+    let int1 = IntNode(name: "Integer 1")
+    let int2 = IntNode(name: "Integer 2")
+    
+    let nodes: [any Node] = [int1, int2]
+    
+    let wires = Set([
+        Wire(from: OutputID(int1, \.[0]), to: InputID(int2, \.[0]))
+    ])
+    
+    let patch = Patch(nodes: nodes.asAnyNodeSet, wires: wires)
+    patch.recursiveLayout(nodeId: int2.id, at: CGPoint(x: 800, y: 50))
     return patch
 }
 
 /// Bit of a stress test to show how Flow performs with more nodes.
 func randomPatch() -> Patch {
-    var randomNodes: [Node] = []
+    var randomNodes: [any Node] = []
     for n in 0 ..< 50 {
         let randomPoint = CGPoint(x: 1000 * Double.random(in: 0 ... 1),
                                   y: 1000 * Double.random(in: 0 ... 1))
-        randomNodes.append(Node(name: "node\(n)",
-                                position: randomPoint,
-                                inputs: ["In"],
-                                outputs: ["Out"]))
+        randomNodes.append(IntNode(name: "Integer \(n)", position: randomPoint))
     }
 
     var randomWires: Set<Wire> = []
@@ -44,7 +87,7 @@ func randomPatch() -> Patch {
             )
         )
     }
-    return Patch(nodes: Set(randomNodes), wires: randomWires)
+    return Patch(nodes: randomNodes.asAnyNodeSet, wires: randomWires)
 }
 
 struct ContentView: View {
@@ -52,14 +95,21 @@ struct ContentView: View {
     @State var selection = Set<NodeId>()
 
     func addNode() {
-        let newNode = Node(name: "processor", titleBarColor: Color.red, inputs: ["in"], outputs: ["out"])
-        patch.nodes.insert(newNode)
+        let newNode = IntNode(name: "Integer")
+        patch.nodes.insert(AnyNode(newNode))
     }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             NodeEditor(patch: patch, selection: $selection)
+                .onWireAdded { wire in
+                    print("Added wire: \(wire)")
+                }
+                .onWireRemoved { wire in
+                    print("Removed wire: \(wire)")
+                }
             Button("Add Node", action: addNode).padding()
         }
     }
+    
 }
