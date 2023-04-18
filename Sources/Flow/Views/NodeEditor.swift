@@ -7,6 +7,9 @@ import SwiftUI
 /// Draws everything using a single Canvas with manual layout. We found this is faster than
 /// using a View for each Node.
 public struct NodeEditor: View {
+    
+    static let kEditorCoordinateSpaceName = "node-editor-coordinate-space"
+    
     /// Data model.
     @ObservedObject var patch: Patch
 
@@ -72,25 +75,33 @@ public struct NodeEditor: View {
 
     public var body: some View {
         ZStack {
-            Canvas { cx, size in
-
-                let viewport = CGRect(origin: toLocal(.zero), size: toLocal(size))
-                cx.addFilter(.shadow(radius: 5))
-                
-                cx.scaleBy(x: CGFloat(zoom), y: CGFloat(zoom))
-                cx.translateBy(x: pan.width, y: pan.height)
-                
-                self.drawWires(cx: cx, viewport: viewport)
-                self.drawNodes(cx: cx, viewport: viewport)
-                self.drawDraggedWire(cx: cx)
-                self.drawSelectionRect(cx: cx)
+            ScrollViewReader { scrollProxy in
+                ScrollView([.horizontal, .vertical], showsIndicators: false) {
+                    ForEach($patch.nodesArray, id: \.id) { nodeBinding in
+                        NodeView(node: nodeBinding)
+                    }
+                }
             }
-            WorkspaceView(pan: $pan, zoom: $zoom, mousePosition: $mousePosition)
-                #if os(macOS)
-                .gesture(commandGesture)
-                #endif
-                .gesture(dragGesture)
+//            Canvas { cx, size in
+//                
+//                let viewport = CGRect(origin: toLocal(.zero), size: toLocal(size))
+//                cx.addFilter(.shadow(radius: 5))
+//                
+//                cx.scaleBy(x: CGFloat(zoom), y: CGFloat(zoom))
+//                cx.translateBy(x: pan.width, y: pan.height)
+//                
+//                self.drawWires(cx: cx, viewport: viewport)
+//                self.drawNodes(cx: cx, viewport: viewport)
+//                self.drawDraggedWire(cx: cx)
+//                self.drawSelectionRect(cx: cx)
+//            }
+//            WorkspaceView(pan: $pan, zoom: $zoom, mousePosition: $mousePosition)
+//                #if os(macOS)
+//                .gesture(commandGesture)
+//                #endif
+//                .gesture(dragGesture)
         }
+        .coordinateSpace(name: NodeEditor.kEditorCoordinateSpaceName)
         .onChange(of: pan) { newValue in
             transformChanged(newValue, zoom)
         }
