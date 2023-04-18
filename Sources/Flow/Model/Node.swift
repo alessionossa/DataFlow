@@ -51,9 +51,7 @@ extension Node {
     }
 }
 
-open class BaseNode<T>: Node where T: View {
-    public typealias MiddleContent = T
-    
+open class BaseNode: Node {
     public  var id: NodeId = UUID()
     
     public var name: String
@@ -68,57 +66,20 @@ open class BaseNode<T>: Node where T: View {
     
     open var outputs: [any PortProtocol] = []
     
-    open var middleView: MiddleContent? = nil
+    private(set) public var middleView: AnyView?
     
     public init(name: String, position: CGPoint? = nil) {
         self.name = name
         self.position = position
-    }
-}
-
-public class AnyNode: Node, Hashable {
-    private var node: any Node
-    
-    public var id: NodeId { node.id }
-    
-    public var name: String {
-        get { node.name }
-        set { node.name = newValue }
+        
     }
     
-    public var position: CGPoint? {
-        get { node.position }
-        set { node.position = newValue }
-    }
-    
-    public var titleBarColor: Color {
-        get { node.titleBarColor }
-        set { node.titleBarColor = newValue }
-    }
-    
-    public var locked: Bool {
-        get { node.locked }
-        set { node.locked = newValue }
-    }
-    
-    public var inputs: [any PortProtocol] {
-        get { node.inputs }
-    }
-    
-    public var outputs: [any PortProtocol] {
-        get { node.outputs }
-    }
-    
-    public var middleView: AnyView? {
-        if let nodeMiddleView = node.middleView {
-            return AnyView(nodeMiddleView)
+    public func setMiddleView(@ViewBuilder _ view: () -> (any View)? = { nil }) {
+        if let view = view() {
+            self.middleView = AnyView(view)
         } else {
-            return nil
+            self.middleView = nil
         }
-    }
-    
-    public init(_ node: some Node) {
-        self.node = node
     }
 }
 
@@ -145,13 +106,5 @@ public extension Sequence where Element: Node {
             return self[withId: inputId.nodeId]
                 .inputs[withId: inputId.portId]
         }
-    }
-}
-
-public extension Sequence where Element == any Node {
-    var asAnyNodeSet: Set<AnyNode> {
-        Set(self.map({ node in
-            AnyNode(node)
-        }))
     }
 }

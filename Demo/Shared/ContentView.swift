@@ -4,7 +4,7 @@ import SwiftUI
 class IntNode: Node {
     var id: NodeId = UUID()
 
-class IntNode: BaseNode<IntNode.IntMiddleView> {
+class IntNode: BaseNode {
     
     struct IntMiddleView: View {
         @Binding var valueBinding: String
@@ -40,7 +40,9 @@ class IntNode: BaseNode<IntNode.IntMiddleView> {
         
         titleBarColor = .brown
         
-        middleView = IntMiddleView(valueBinding: valueBinding)
+        setMiddleView {
+            IntMiddleView(valueBinding: valueBinding)
+        }
         
         if let intInput = inputs[0] as? Flow.Port<Int> {
             intInput.$value.assign(to: &$value)
@@ -56,20 +58,20 @@ func simplePatch() -> Patch {
     let int1 = IntNode(name: "Integer 1")
     let int2 = IntNode(name: "Integer 2")
     
-    let nodes: [any Node] = [int1, int2]
+    let nodes: Set<BaseNode> = Set([int1, int2])
     
     let wires = Set([
         Wire(from: OutputID(int1, \.[0]), to: InputID(int2, \.[0]))
     ])
     
-    let patch = Patch(nodes: nodes.asAnyNodeSet, wires: wires)
+    let patch = Patch(nodes: nodes, wires: wires)
     patch.recursiveLayout(nodeId: int2.id, at: CGPoint(x: 800, y: 50))
     return patch
 }
 
 /// Bit of a stress test to show how Flow performs with more nodes.
 func randomPatch() -> Patch {
-    var randomNodes: [any Node] = []
+    var randomNodes: [BaseNode] = []
     for n in 0 ..< 50 {
         let randomPoint = CGPoint(x: 1000 * Double.random(in: 0 ... 1),
                                   y: 1000 * Double.random(in: 0 ... 1))
@@ -85,7 +87,7 @@ func randomPatch() -> Patch {
             )
         )
     }
-    return Patch(nodes: randomNodes.asAnyNodeSet, wires: randomWires)
+    return Patch(nodes: Set(randomNodes), wires: randomWires)
 }
 
 struct ContentView: View {
@@ -94,7 +96,7 @@ struct ContentView: View {
 
     func addNode() {
         let newNode = IntNode(name: "Integer")
-        patch.nodes.insert(AnyNode(newNode))
+        patch.nodes.insert(newNode)
     }
 
     var body: some View {

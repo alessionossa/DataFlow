@@ -2,25 +2,19 @@ import Flow
 import PlaygroundSupport
 import SwiftUI
 
-class IntNode: Node {
-    var id: NodeId = UUID()
-
-    var name: String
-    var position: CGPoint?
-    var titleBarColor: Color = .brown
-    var locked: Bool = false
-
-    var inputs: [any PortProtocol] = [
-        Port(name: "Value", valueType: Int.self)
-    ]
+class IntNode: BaseNode {
     
-    var outputs: [any PortProtocol] = [
-        Port(name: "Value", valueType: Int.self)
-    ]
+    struct IntMiddleView: View {
+        @Binding var valueBinding: String
+        
+        var body: some View {
+            HStack {
+                TextField("Integer", text: $valueBinding)
+            }
+        }
+    }
 
     @Published var value: Int? = nil
-    
-    @State var valueState: Int? = nil
     
     var valueBinding: Binding<String> {
         Binding<String>(
@@ -30,17 +24,23 @@ class IntNode: Node {
             }
         )
     }
-
-    var middleView: (some View)? {
-        HStack {
-            Text("The connected value is \(value?.description ?? "")")
-            TextField("Integer", text: valueBinding)
-        }
-    }
     
-    init(name: String, position: CGPoint? = nil) {
-        self.name = name
-        self.position = position
+    override init(name: String, position: CGPoint? = nil) {
+        super.init(name: name, position: position)
+        
+        inputs = [
+            Port(name: "Value", valueType: Int.self)
+        ]
+        
+        outputs = [
+            Port(name: "Value", valueType: Int.self)
+        ]
+        
+        titleBarColor = .brown
+        
+        setMiddleView {
+            IntMiddleView(valueBinding: valueBinding)
+        }
         
         if let intInput = inputs[0] as? Flow.Port<Int> {
             intInput.$value.assign(to: &$value)
@@ -56,13 +56,13 @@ func simplePatch() -> Patch {
     let int1 = IntNode(name: "Integer 1")
     let int2 = IntNode(name: "Integer 2")
     
-    let nodes: [any Node] = [int1, int2]
+    let nodes: Set<BaseNode> = Set([int1, int2])
     
     let wires = Set([
         Wire(from: OutputID(int1, \.[0]), to: InputID(int2, \.[0]))
     ])
     
-    let patch = Patch(nodes: nodes.asAnyNodeSet, wires: wires)
+    let patch = Patch(nodes: nodes, wires: wires)
     patch.recursiveLayout(nodeId: int2.id, at: CGPoint(x: 800, y: 50))
     return patch
 }
