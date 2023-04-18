@@ -112,35 +112,6 @@ public class Port<T>: Identifiable, PortProtocol where T: Equatable {
     }
 }
 
-public struct PortsContainer: Collection {
-    private var ports: [any PortProtocol]
-    
-    public var startIndex: Int { ports.startIndex }
-    public var endIndex: Int { ports.endIndex }
-    
-    public init(_ ports: [any PortProtocol]) {
-        self.ports = ports
-    }
-    
-    public func index(after i: Int) -> Int {
-        ports.index(after: i)
-    }
-    
-    public subscript(index: Array<PortProtocol>.Index) -> any PortProtocol {
-        ports[index]
-    }
-    
-    public subscript(withId id: PortId) -> any PortProtocol {
-        get {
-            return ports[withId: id]
-        }
-    }
-    
-    public subscript(keyPath keyPath: KeyPath<[any PortProtocol], any PortProtocol>) -> any PortProtocol {
-        ports[keyPath: keyPath]
-    }
-}
-
 public extension Sequence where Element == any PortProtocol {
     subscript(withId id: PortId) -> any PortProtocol {
         get {

@@ -10,13 +10,13 @@ class IntNode: Node {
     var titleBarColor: Color = .brown
     var locked: Bool = false
 
-    var inputs: PortsContainer = PortsContainer([
+    var inputs: [any PortProtocol] = [
         Port(name: "Value", valueType: Int.self)
-    ])
+    ]
     
-    var outputs: PortsContainer = PortsContainer([
+    var outputs: [any PortProtocol] = [
         Port(name: "Value", valueType: Int.self)
-    ])
+    ]
 
     @Published var value: Int? = nil
     

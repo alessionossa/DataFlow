@@ -23,9 +23,9 @@ public protocol Node: AnyObject, ObservableObject, Hashable, Equatable {
     /// Is the node position fixed so it can't be edited in the UI?
     var locked: Bool { get set }
 
-    var inputs: PortsContainer { get }
+    var inputs: [any PortProtocol] { get }
     @ViewBuilder var middleView: MiddleContent? { get }
-    var outputs: PortsContainer { get }
+    var outputs: [any PortProtocol] { get }
     
     func indexOfOutput(_ port: OutputID) -> Array<PortProtocol>.Index?
     
@@ -76,11 +76,11 @@ public class AnyNode: Node, Hashable {
         set { node.locked = newValue }
     }
     
-    public var inputs: PortsContainer {
+    public var inputs: [any PortProtocol] {
         get { node.inputs }
     }
     
-    public var outputs: PortsContainer {
+    public var outputs: [any PortProtocol] {
         get { node.outputs }
     }
     
