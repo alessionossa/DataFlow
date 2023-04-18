@@ -4,25 +4,19 @@ import SwiftUI
 class IntNode: Node {
     var id: NodeId = UUID()
 
-    var name: String
-
-    var position: CGPoint?
-
-    var titleBarColor: Color = .brown
-
-    var locked: Bool = false
-
-    var inputs: [any PortProtocol] = [
-        Port(name: "Value", valueType: Int.self)
-    ]
+class IntNode: BaseNode<IntNode.IntMiddleView> {
     
-    var outputs: [any PortProtocol] = [
-        Port(name: "Value", valueType: Int.self)
-    ]
+    struct IntMiddleView: View {
+        @Binding var valueBinding: String
+        
+        var body: some View {
+            HStack {
+                TextField("Integer", text: $valueBinding)
+            }
+        }
+    }
 
     @Published var value: Int? = nil
-    
-    @State var valueState: Int? = nil
     
     var valueBinding: Binding<String> {
         Binding<String>(
@@ -32,17 +26,21 @@ class IntNode: Node {
             }
         )
     }
-
-    var middleView: (some View)? {
-        HStack {
-            Text("The connected value is \(value?.description ?? "")")
-            TextField("Integer", text: valueBinding)
-        }
-    }
     
-    init(name: String, position: CGPoint? = nil) {
-        self.name = name
-        self.position = position
+    override init(name: String, position: CGPoint? = nil) {
+        super.init(name: name, position: position)
+        
+        inputs = [
+            Port(name: "Value", valueType: Int.self)
+        ]
+        
+        outputs = [
+            Port(name: "Value", valueType: Int.self)
+        ]
+        
+        titleBarColor = .brown
+        
+        middleView = IntMiddleView(valueBinding: valueBinding)
         
         if let intInput = inputs[0] as? Flow.Port<Int> {
             intInput.$value.assign(to: &$value)

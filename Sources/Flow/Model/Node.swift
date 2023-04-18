@@ -51,6 +51,31 @@ extension Node {
     }
 }
 
+open class BaseNode<T>: Node where T: View {
+    public typealias MiddleContent = T
+    
+    public  var id: NodeId = UUID()
+    
+    public var name: String
+    
+    public var position: CGPoint?
+    
+    public var titleBarColor: Color = .mint
+    
+    public var locked: Bool = false
+    
+    open var inputs: [any PortProtocol] = []
+    
+    open var outputs: [any PortProtocol] = []
+    
+    open var middleView: MiddleContent? = nil
+    
+    public init(name: String, position: CGPoint? = nil) {
+        self.name = name
+        self.position = position
+    }
+}
+
 public class AnyNode: Node, Hashable {
     private var node: any Node
     
