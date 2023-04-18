@@ -51,7 +51,9 @@ extension Node {
     }
 }
 
-open class BaseNode: Node {
+open class BaseNode<T>: Node where T: View {
+    public typealias MiddleContent = T
+    
     public  var id: NodeId = UUID()
     
     public var name: String
@@ -66,24 +68,15 @@ open class BaseNode: Node {
     
     open var outputs: [any PortProtocol] = []
     
-    private(set) public var middleView: AnyView?
+    open var middleView: T? = nil
     
     public init(name: String, position: CGPoint? = nil) {
         self.name = name
         self.position = position
-        
-    }
-    
-    public func setMiddleView(@ViewBuilder _ view: () -> (any View)? = { nil }) {
-        if let view = view() {
-            self.middleView = AnyView(view)
-        } else {
-            self.middleView = nil
-        }
     }
 }
 
-public extension Sequence where Element: Node {
+public extension Sequence where Element == any Node {
     subscript(withId id: NodeId) -> Element {
         get {
             guard let node = first(where: { $0.id == id }) else {

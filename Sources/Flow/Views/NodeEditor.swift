@@ -77,8 +77,9 @@ public struct NodeEditor: View {
         ZStack {
             ScrollViewReader { scrollProxy in
                 ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                    ForEach($patch.nodesArray, id: \.id) { nodeBinding in
+                    ForEach($patch.nodes, id: \.id) { nodeBinding in
                         NodeView(node: nodeBinding)
+                        
                     }
                 }
             }

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NodeView: View {
-    @Binding var node: BaseNode
+    @Binding var node: any Node
     
     var body: some View {
             VStack {
@@ -27,7 +27,9 @@ struct NodeView: View {
                         }
                     }
 
-                    node.middleView
+                    if let middleView = node.middleView {
+                        AnyView(middleView)
+                    }
 
                     VStack {
                         ForEach(node.outputs, id: \.id) { output in
@@ -58,11 +60,8 @@ struct NodeView: View {
 }
 
 struct NodeView_Previews: PreviewProvider {
-    static func getTestNode(proxy: GeometryProxy) -> BaseNode {
-        let node = BaseNode(name: "Test", position: CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2))
-        node.setMiddleView {
-            Text("Middle view")
-        }
+    static func getTestNode(proxy: GeometryProxy) -> BaseNode<some View> {
+        let node = BaseNode<EmptyView>(name: "Test", position: CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2))
         
         return node
     }

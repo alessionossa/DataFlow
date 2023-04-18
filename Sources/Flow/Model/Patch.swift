@@ -10,23 +10,12 @@ import SwiftUI
 /// as well as a function to update your data model when the `Patch` changes.
 /// Use SwiftUI's `onChange(of:)` to monitor changes, or use `NodeEditor.onNodeAdded`, etc.
 public class Patch: ObservableObject {
-    @Published public var nodes: Set<BaseNode> {
-        didSet {
-            if !nodes.symmetricDifference(oldValue).isEmpty {
-            } else {
-                nodesArray = Array(nodes)
-            }
-        }
-    }
+    @Published public var nodes: [any Node]
     
     @Published public var wires: Set<Wire>
-    
-    @Published var nodesArray: [BaseNode] = []
 
-    public init(nodes: Set<BaseNode>, wires: Set<Wire>) {
+    public init(nodes: [any Node], wires: Set<Wire>) {
         self.nodes = nodes
         self.wires = wires
-        
-        self.nodesArray = Array(nodes)
     }
 }
