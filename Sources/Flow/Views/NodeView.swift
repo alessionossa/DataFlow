@@ -37,6 +37,7 @@ struct NodeView: View {
     }
     
     var body: some View {
+        GeometryReader { geometryProxy in
             VStack {
                 HStack {
                     Text(node.name)
@@ -84,9 +85,18 @@ struct NodeView: View {
             .cornerRadius(8)
             .shadow(radius: 5)
             .scaleEffect(dragging ? 1.1 : 1.0)
+            .fixedSize()
             .position(currentNodePosition ?? .zero)
             .animation(.easeInOut, value: dragging)
-
+            .onAppear {
+                node.frame = geometryProxy.frame(in: .named(NodeEditor.kEditorCoordinateSpaceName))
+            }
+            .onChange(of: geometryProxy.frame(in: .named(NodeEditor.kEditorCoordinateSpaceName))) { newValue in
+                if newValue != node.frame {
+                    node.frame = newValue
+                }
+            }
+        }
     }
     
     

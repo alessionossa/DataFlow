@@ -18,6 +18,7 @@ public protocol Node: AnyObject, ObservableObject, Hashable, Equatable {
     var id: NodeId { get }
     var name: String { get set }
     var position: CGPoint? { get set }
+    var frame: CGRect? { get set }
     var titleBarColor: Color { get set }
 
     /// Is the node position fixed so it can't be edited in the UI?
@@ -58,6 +59,8 @@ open class BaseNode: Node, ObservableObject {
     public var name: String
     
     @Published public var position: CGPoint?
+    
+    @Published public var frame: CGRect?
     
     public var titleBarColor: Color = .mint
     

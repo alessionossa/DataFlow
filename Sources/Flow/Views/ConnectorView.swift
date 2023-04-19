@@ -68,7 +68,7 @@ struct ConnectorView: View {
                 }
                 
             }
-            .frame(width: 16, height: 16)
+            .frame(width: 20, height: 20)
             .scaleEffect((isDragging || isPossibleInput) ? 1.2 : 1.0)
             .gesture(dragGesture)
             
