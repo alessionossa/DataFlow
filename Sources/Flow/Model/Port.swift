@@ -98,7 +98,7 @@ public protocol PortProtocol: AnyObject, ObservableObject, Identifiable {
     
     func canConnectTo(port: any PortProtocol) -> Bool
     func connect(to port: any PortProtocol) throws
-    func disconnect(from port: any PortProtocol)
+    func disconnect(from port: any PortProtocol) throws
     func forwardUpdatesTo(objectPublisher: ObservableObjectPublisher) -> AnyCancellable
     
     func color(with style: NodeEditor.Style, isOutput: Bool) -> Color?
@@ -124,6 +124,7 @@ public class Port<T>: Identifiable, ObservableObject, PortProtocol where T: Equa
     
     enum PortError: Error {
         case valueTypeMismatch
+        case wrongPortType
     }
     
 //    var valueContainer: PortValue
@@ -144,28 +145,23 @@ public class Port<T>: Identifiable, ObservableObject, PortProtocol where T: Equa
         return false
     }
     
-    public func connect(to port: any PortProtocol) throws {
-        guard let port = port as? Port<T> else { throw PortError.valueTypeMismatch }
+    public func connect(to outputPort: any PortProtocol) throws {
+        guard type == .input else { throw PortError.wrongPortType }
+        guard let port = outputPort as? Port<T> else { throw PortError.valueTypeMismatch }
         self.portValueCancellable = port.$value.removeDuplicates().sink { [weak self] newValue in
             self?.value = newValue
         }
         
-        switch port.type {
-        case .input:
-            connectedToInputs.insert(InputID(port.nodeId, port.id))
-        case .output:
-            connectedToOutputs.insert(OutputID(port.nodeId, port.id))
-        }
+        connectedToOutputs.insert(OutputID(port.nodeId, port.id))
+        port.connectedToInputs.insert(InputID(nodeId, id))
     }
     
-    public func disconnect(from port: any PortProtocol) {
-        switch port.type {
-        case .input:
-            connectedToInputs.remove(InputID(port.nodeId, port.id))
-        case .output:
-            connectedToOutputs.remove(OutputID(port.nodeId, port.id))
-            port.disconnect(from: self)
-        }
+    public func disconnect(from outputPort: any PortProtocol) throws {
+        guard type == .input else { throw PortError.wrongPortType }
+        guard let port = outputPort as? Port<T> else { throw PortError.valueTypeMismatch }
+        
+        connectedToOutputs.remove(OutputID(port.nodeId, port.id))
+        port.connectedToInputs.remove(InputID(nodeId, id))
         
         portValueCancellable?.cancel()
         portValueCancellable = nil

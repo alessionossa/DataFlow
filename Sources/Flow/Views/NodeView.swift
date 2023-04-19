@@ -43,7 +43,7 @@ struct NodeView: View {
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, 16)
                 .background(Color.blue)
                 .gesture(dragGesture)
                 
@@ -53,34 +53,34 @@ struct NodeView: View {
                             ConnectorView(connector: input, gestureState: gestureState)
                         }
                     }
-                    .padding(.trailing, 8)
+                    .padding(.leading, 8)
                     
                     if let middleView = node.middleView {
                         AnyView(middleView)
                     }
-
-                    VStack {
+                    
+                    VStack(alignment: .trailing) {
                         ForEach(node.outputs, id: \.id) { output in
                             ConnectorView(connector: output, gestureState: gestureState)
                         }
                     }
                     .padding(.trailing, 8)
-                }.opacity(0.9)
+                }
+                .padding(.vertical, 16)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
             }
-            #if canImport(UIKit)
+#if canImport(UIKit)
             .background(
                 Color(UIColor.systemBackground)
                     .opacity(0.6)
             )
-            #endif
-            #if canImport(AppKit)
+#endif
+#if canImport(AppKit)
             .background(
                 Color(NSColor.textBackgroundColor)
                     .opacity(0.6)
             )
-            #endif
+#endif
             .cornerRadius(8)
             .shadow(radius: 5)
             .scaleEffect(dragging ? 1.1 : 1.0)

@@ -29,13 +29,23 @@ struct ConnectorView: View {
         return false
     }
     
+    var isConnected: Bool {
+        switch connector.type {
+        case .input:
+            return !connector.connectedToOutputs.isEmpty
+        case .output:
+            return !connector.connectedToInputs.isEmpty
+        }
+    }
+    
     @State private var previousPosition: CGPoint?
     @State private var draggingWire: Bool = false
     
     var body: some View {
-        HStack {
+        HStack(spacing: 4) {
             if connector.type == .output {
                 Text(connector.name)
+                    .font(.caption)
             }
             
             ZStack(alignment: .center) {
@@ -50,11 +60,13 @@ struct ConnectorView: View {
                             connector.frame = newValue
                         }
                 }
-                if true {
+                
+                if isConnected {
                     Circle()
                         .fill(Color.black)
                         .frame(width: 8, height: 8)
                 }
+                
             }
             .frame(width: 16, height: 16)
             .scaleEffect((isDragging || isPossibleInput) ? 1.2 : 1.0)
@@ -62,10 +74,12 @@ struct ConnectorView: View {
             
             if connector.type == .input {
                 Text(connector.name)
+                    .font(.caption)
             }
         }
         .animation(.easeInOut, value: isDragging)
         .animation(.easeInOut, value: isPossibleInput)
+        .animation(.easeInOut, value: isConnected)
     }
     
     var dragGesture: some Gesture {

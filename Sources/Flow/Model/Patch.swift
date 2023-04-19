@@ -76,7 +76,7 @@ public class Patch: ObservableObject {
             let result = w.input != wire.input
             if !result {
                 let outputPort = nodes[portId: w.output]
-                input.disconnect(from: outputPort)
+                try? input.disconnect(from: outputPort)
                 wireRemoved(w)
             }
             return result
@@ -96,7 +96,7 @@ public class Patch: ObservableObject {
         let output = nodes[portId: wire.output]
         let input = nodes[portId: wire.input]
         
-        input.disconnect(from: output)
+        try? input.disconnect(from: output)
         wires.remove(wire)
         wireRemoved(wire)
     }
