@@ -28,18 +28,6 @@ public struct NodeEditor: View {
 
     /// Called when a node is moved.
     var nodeMoved: NodeMovedHandler = { _, _ in }
-
-    /// Wire added handler closure.
-    public typealias WireAddedHandler = (_ wire: Wire) -> Void
-
-    /// Called when a wire is added.
-    var wireAdded: WireAddedHandler = { _ in }
-
-    /// Wire removed handler closure.
-    public typealias WireRemovedHandler = (_ wire: Wire) -> Void
-
-    /// Called when a wire is removed.
-    var wireRemoved: WireRemovedHandler = { _ in }
     
     /// Handler for pan or zoom.
     public typealias TransformChangedHandler = (_ pan: CGSize, _ zoom: CGFloat) -> Void
@@ -74,35 +62,39 @@ public struct NodeEditor: View {
     @State var mousePosition: CGPoint = CGPoint(x: CGFloat.infinity, y: CGFloat.infinity)
 
     public var body: some View {
-        ZStack {
+        GeometryReader { geometryProxy in
             ScrollViewReader { scrollProxy in
                 ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                    ForEach($patch.nodes, id: \.id) { nodeBinding in
-                        NodeView(node: nodeBinding)
+                    ZStack {
                         
+                        Color.clear
+                            .frame(width: 2000, height: 2000)
+                        
+                        
+                        
+                        Canvas { cx, size in
+                            self.drawWires(cx: cx)
+                            self.drawNodes(cx: cx)
+                            self.drawDraggedWire(cx: cx)
+                            self.drawSelectionRect(cx: cx)
+                        }.background(.green)
+                        
+                        ForEach(patch.nodes, id: \.id) { node in
+                            NodeView(node: node, gestureState: $dragInfo)
+                                .fixedSize()
+                        }
                     }
+                    .coordinateSpace(name: NodeEditor.kEditorCoordinateSpaceName)
+                    
                 }
             }
-//            Canvas { cx, size in
-//                
-//                let viewport = CGRect(origin: toLocal(.zero), size: toLocal(size))
-//                cx.addFilter(.shadow(radius: 5))
-//                
-//                cx.scaleBy(x: CGFloat(zoom), y: CGFloat(zoom))
-//                cx.translateBy(x: pan.width, y: pan.height)
-//                
-//                self.drawWires(cx: cx, viewport: viewport)
-//                self.drawNodes(cx: cx, viewport: viewport)
-//                self.drawDraggedWire(cx: cx)
-//                self.drawSelectionRect(cx: cx)
-//            }
+        }
 //            WorkspaceView(pan: $pan, zoom: $zoom, mousePosition: $mousePosition)
 //                #if os(macOS)
 //                .gesture(commandGesture)
 //                #endif
 //                .gesture(dragGesture)
-        }
-        .coordinateSpace(name: NodeEditor.kEditorCoordinateSpaceName)
+        .environmentObject(patch)
         .onChange(of: pan) { newValue in
             transformChanged(newValue, zoom)
         }

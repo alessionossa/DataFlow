@@ -1,40 +1,14 @@
 // Copyright AudioKit. All Rights Reserved. Revision History at http://github.com/AudioKit/Flow/
 
 import SwiftUI
-import os.log
 
 extension NodeEditor {
     /// State for all gestures.
-    enum DragInfo {
-        case wire(output: OutputID, offset: CGSize = .zero, hideWire: Wire? = nil)
+    enum DragInfo: Equatable {
+        case wire(output: OutputID, offset: CGSize = .zero, hideWire: Wire? = nil, possibleInputId: InputID? = nil)
         case node(id: NodeId, offset: CGSize = .zero)
         case selection(rect: CGRect = .zero)
         case none
-    }
-
-    /// Adds a new wire to the patch, ensuring that multiple wires aren't connected to an input.
-    func connect(_ output: OutputID, to input: InputID) {
-        let wire = Wire(from: output, to: input)
-
-        // Remove any other wires connected to the input.
-        patch.wires = patch.wires.filter { w in
-            let result = w.input != wire.input
-            if !result {
-                wireRemoved(w)
-            }
-            return result
-        }
-        patch.wires.insert(wire)
-        
-        let output = patch.nodes[portId: wire.output]
-        let input = patch.nodes[portId: wire.input]
-        do {
-            try input.setPublisher(from: output)
-        } catch {
-            Logger().error("\(error.localizedDescription, privacy: .public)")
-        }
-        
-        wireAdded(wire)
     }
 
     func attachedWire(inputID: InputID) -> Wire? {
@@ -143,16 +117,16 @@ extension NodeEditor {
                     case let .output(outputId):
                         let type = patch.nodes[portId: outputId].type
                         if let input = findInput(point: location, type: type) {
-                            connect(outputId, to: input)
+                            patch.connect(outputId, to: input)
                         }
                     case let .input(inputId):
                         let type = patch.nodes[portId: inputId].type
                         // Is a wire attached to the input?
                         if let attachedWire = attachedWire(inputID: inputId) {
                             patch.wires.remove(attachedWire)
-                            wireRemoved(attachedWire)
+                            patch.wireRemoved(attachedWire)
                             if let input = findInput(point: location, type: type) {
-                                connect(attachedWire.output, to: input)
+                                patch.connect(attachedWire.output, to: input)
                             }
                         }
                     }

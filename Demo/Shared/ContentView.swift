@@ -4,43 +4,47 @@ import SwiftUI
 class IntNode: Node {
     var id: NodeId = UUID()
 
-class IntNode: BaseNode<IntNode.IntMiddleView> {
+class IntNode: BaseNode {
     
     struct IntMiddleView: View {
-        @Binding var valueBinding: String
+        @ObservedObject var node: IntNode
+        
+        var valueBinding: Binding<String> {
+            Binding<String>(
+                get: {
+                    guard let value = node.value else { return "" }
+                    return String(value)
+                },
+                set: { newValue in
+                    self.node.value = Int.init(newValue)
+                }
+            )
+        }
         
         var body: some View {
-            HStack {
-                TextField("Integer", text: $valueBinding)
-            }
+            TextField("Integer", text: valueBinding)
+                .keyboardType(.numberPad)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 100)
         }
     }
 
     @Published var value: Int? = nil
     
-    var valueBinding: Binding<String> {
-        Binding<String>(
-            get: { self.value?.description ?? "" },
-            set: { newValue in
-                self.value = Int.init(newValue)
-            }
-        )
-    }
-    
     override init(name: String, position: CGPoint? = nil) {
         super.init(name: name, position: position)
         
         inputs = [
-            Port(name: "Value", valueType: Int.self)
+            Port(name: "Value", type: .input, valueType: Int.self, parentNodeId: id)
         ]
         
         outputs = [
-            Port(name: "Value", valueType: Int.self)
+            Port(name: "Value", type: .output, valueType: Int.self, parentNodeId: id)
         ]
         
         titleBarColor = .brown
         
-        middleView = IntMiddleView(valueBinding: valueBinding)
+        middleView = AnyView(IntMiddleView(node: self))
         
         if let intInput = inputs[0] as? Flow.Port<Int> {
             intInput.$value.assign(to: &$value)
@@ -69,7 +73,8 @@ func simplePatch() -> Patch {
 
 /// Bit of a stress test to show how Flow performs with more nodes.
 func randomPatch() -> Patch {
-    var randomNodes: [any Node] = []
+    var randomNodes: [BaseNode] = []
+    
     for n in 0 ..< 50 {
         let randomPoint = CGPoint(x: 1000 * Double.random(in: 0 ... 1),
                                   y: 1000 * Double.random(in: 0 ... 1))

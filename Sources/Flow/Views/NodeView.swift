@@ -6,9 +6,35 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct NodeView: View {
-    @Binding var node: any Node
+    @ObservedObject var node: BaseNode
+    
+    var gestureState: GestureState<NodeEditor.DragInfo>
+    
+    @State private var previousPosition: CGPoint?
+    
+    var dragging: Bool {
+        if case let .node(draggedId, _) = gestureState.wrappedValue {
+            let draggingNode = draggedId == node.id
+            return draggingNode
+        }
+        
+        return false
+    }
+    
+    var currentNodePosition: CGPoint? {
+        if dragging, case let .node(_, offset) = gestureState.wrappedValue {
+            return (node.position ?? .zero) + offset
+        }
+        return node.position
+    }
     
     var body: some View {
             VStack {
@@ -19,56 +45,85 @@ struct NodeView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .background(Color.blue)
+                .gesture(dragGesture)
                 
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
                     VStack {
                         ForEach(node.inputs, id: \.id) { input in
-                            ConnectorView(connector: input)
+                            ConnectorView(connector: input, gestureState: gestureState)
                         }
                     }
-
+                    .padding(.trailing, 8)
+                    
                     if let middleView = node.middleView {
                         AnyView(middleView)
                     }
 
                     VStack {
                         ForEach(node.outputs, id: \.id) { output in
-                            ConnectorView(connector: output)
+                            ConnectorView(connector: output, gestureState: gestureState)
                         }
                     }
-                }
+                    .padding(.trailing, 8)
+                }.opacity(0.9)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
             }
-            .background(.white)
-            .cornerRadius(8)
-            .gesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .named(NodeEditor.kEditorCoordinateSpaceName))
-                    .onChanged { value in
-                        node.position? += value.translation
-                    }
-                    .onEnded({ value in
-                        node.position?.x += value.translation.width
-                        node.position?.y += value.translation.height
-                    })
+            #if canImport(UIKit)
+            .background(
+                Color(UIColor.systemBackground)
+                    .opacity(0.6)
             )
+            #endif
+            #if canImport(AppKit)
+            .background(
+                Color(NSColor.textBackgroundColor)
+                    .opacity(0.6)
+            )
+            #endif
+            .cornerRadius(8)
             .shadow(radius: 5)
-            .position(node.position ?? .zero)
+            .scaleEffect(dragging ? 1.1 : 1.0)
+            .position(currentNodePosition ?? .zero)
+            .animation(.easeInOut, value: dragging)
 
+    }
+    
+    
+    var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(NodeEditor.kEditorCoordinateSpaceName))
+            .updating(gestureState, body: { dragValue, dragState, transaction in
+                if gestureState.wrappedValue == NodeEditor.DragInfo.none
+                    || dragging {
+                    dragState = NodeEditor.DragInfo.node(id: node.id, offset: dragValue.translation)
+                }
+            })
+            .onChanged { value in
+                if dragging && previousPosition == nil {
+                    previousPosition = node.position ?? .zero
+                }
+            }
+            .onEnded { value in
+                guard let previousPosition else { return }
+                node.position = previousPosition + value.translation
+
+                self.previousPosition = nil
+            }
     }
     
     
 }
 
 struct NodeView_Previews: PreviewProvider {
-    static func getTestNode(proxy: GeometryProxy) -> BaseNode<some View> {
-        let node = BaseNode<EmptyView>(name: "Test", position: CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2))
+    static func getTestNode(proxy: GeometryProxy) -> BaseNode {
+        let node = BaseNode(name: "Test", position: CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2))
         
         return node
     }
     
     static var previews: some View {
         GeometryReader { proxy in
-            NodeView(node: .constant(getTestNode(proxy: proxy)))
+            NodeView(node: getTestNode(proxy: proxy), gestureState: .init(initialValue: .none))
                 
         }
         .background(.clear)

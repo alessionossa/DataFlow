@@ -5,42 +5,44 @@ import SwiftUI
 class IntNode: BaseNode {
     
     struct IntMiddleView: View {
-        @Binding var valueBinding: String
+        @ObservedObject var node: IntNode
+        
+        var valueBinding: Binding<String> {
+            Binding<String>(
+                get: {
+                    guard let value = node.value else { return "" }
+                    return String(value)
+                },
+                set: { newValue in
+                    self.node.value = Int.init(newValue)
+                }
+            )
+        }
         
         var body: some View {
-            HStack {
-                TextField("Integer", text: $valueBinding)
-            }
+            TextField("Integer", text: valueBinding)
+                .keyboardType(.numberPad)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 100)
         }
     }
 
     @Published var value: Int? = nil
     
-    var valueBinding: Binding<String> {
-        Binding<String>(
-            get: { self.value?.description ?? "" },
-            set: { newValue in
-                self.value = Int.init(newValue)
-            }
-        )
-    }
-    
     override init(name: String, position: CGPoint? = nil) {
         super.init(name: name, position: position)
         
         inputs = [
-            Port(name: "Value", valueType: Int.self)
+            Port(name: "Value", type: .input, valueType: Int.self, parentNodeId: id)
         ]
         
         outputs = [
-            Port(name: "Value", valueType: Int.self)
+            Port(name: "Value", type: .output, valueType: Int.self, parentNodeId: id)
         ]
         
         titleBarColor = .brown
         
-        setMiddleView {
-            IntMiddleView(valueBinding: valueBinding)
-        }
+        middleView = AnyView(IntMiddleView(node: self))
         
         if let intInput = inputs[0] as? Flow.Port<Int> {
             intInput.$value.assign(to: &$value)
@@ -56,14 +58,14 @@ func simplePatch() -> Patch {
     let int1 = IntNode(name: "Integer 1")
     let int2 = IntNode(name: "Integer 2")
     
-    let nodes: Set<BaseNode> = Set([int1, int2])
+    let nodes = [int1, int2]
     
     let wires = Set([
         Wire(from: OutputID(int1, \.[0]), to: InputID(int2, \.[0]))
     ])
     
     let patch = Patch(nodes: nodes, wires: wires)
-    patch.recursiveLayout(nodeId: int2.id, at: CGPoint(x: 800, y: 50))
+    patch.recursiveLayout(nodeId: int2.id, at: CGPoint(x: 600, y: 50))
     return patch
 }
 

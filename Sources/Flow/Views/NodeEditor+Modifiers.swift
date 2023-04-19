@@ -15,17 +15,15 @@ public extension NodeEditor {
     }
 
     /// Called when a wire is added.
-    func onWireAdded(_ handler: @escaping WireAddedHandler) -> Self {
-        var viewCopy = self
-        viewCopy.wireAdded = handler
-        return viewCopy
+    func onWireAdded(_ handler: @escaping Patch.WireAddedHandler) -> Self {
+        self.patch.wireAdded = handler
+        return self
     }
 
     /// Called when a wire is removed.
-    func onWireRemoved(_ handler: @escaping WireRemovedHandler) -> Self {
-        var viewCopy = self
-        viewCopy.wireRemoved = handler
-        return viewCopy
+    func onWireRemoved(_ handler: @escaping Patch.WireRemovedHandler) -> Self {
+        self.patch.wireRemoved = handler
+        return self
     }
     
     /// Called when the viewing transform has changed.
@@ -44,49 +42,49 @@ public extension NodeEditor {
         return viewCopy
     }
 
-    /// Set the port color for a port type.
-    func portColor(for portType: PortType, _ color: Color) -> Self {
-        var viewCopy = self
-
-        switch portType {
-        case .control:
-            viewCopy.style.controlWire.inputColor = color
-            viewCopy.style.controlWire.outputColor = color
-        case .signal:
-            viewCopy.style.signalWire.inputColor = color
-            viewCopy.style.signalWire.outputColor = color
-        case .midi:
-            viewCopy.style.midiWire.inputColor = color
-            viewCopy.style.midiWire.outputColor = color
-        case let .custom(id):
-            if viewCopy.style.customWires[id] == nil {
-                viewCopy.style.customWires[id] = .init()
-            }
-            viewCopy.style.customWires[id]?.inputColor = color
-            viewCopy.style.customWires[id]?.outputColor = color
-        }
-
-        return viewCopy
-    }
-
-    /// Set the port color for a port type to a gradient.
-    func portColor(for portType: PortType, _ gradient: Gradient) -> Self {
-        var viewCopy = self
-
-        switch portType {
-        case .control:
-            viewCopy.style.controlWire.gradient = gradient
-        case .signal:
-            viewCopy.style.signalWire.gradient = gradient
-        case .midi:
-            viewCopy.style.midiWire.gradient = gradient
-        case let .custom(id):
-            if viewCopy.style.customWires[id] == nil {
-                viewCopy.style.customWires[id] = .init()
-            }
-            viewCopy.style.customWires[id]?.gradient = gradient
-        }
-
-        return viewCopy
-    }
+//    /// Set the port color for a port type.
+//    func portColor(for portType: PortType, _ color: Color) -> Self {
+//        var viewCopy = self
+//
+//        switch portType {
+//        case .control:
+//            viewCopy.style.controlWire.inputColor = color
+//            viewCopy.style.controlWire.outputColor = color
+//        case .signal:
+//            viewCopy.style.signalWire.inputColor = color
+//            viewCopy.style.signalWire.outputColor = color
+//        case .midi:
+//            viewCopy.style.midiWire.inputColor = color
+//            viewCopy.style.midiWire.outputColor = color
+//        case let .custom(id):
+//            if viewCopy.style.customWires[id] == nil {
+//                viewCopy.style.customWires[id] = .init()
+//            }
+//            viewCopy.style.customWires[id]?.inputColor = color
+//            viewCopy.style.customWires[id]?.outputColor = color
+//        }
+//
+//        return viewCopy
+//    }
+//
+//    /// Set the port color for a port type to a gradient.
+//    func portColor(for portType: PortType, _ gradient: Gradient) -> Self {
+//        var viewCopy = self
+//
+//        switch portType {
+//        case .control:
+//            viewCopy.style.controlWire.gradient = gradient
+//        case .signal:
+//            viewCopy.style.signalWire.gradient = gradient
+//        case .midi:
+//            viewCopy.style.midiWire.gradient = gradient
+//        case let .custom(id):
+//            if viewCopy.style.customWires[id] == nil {
+//                viewCopy.style.customWires[id] = .init()
+//            }
+//            viewCopy.style.customWires[id]?.gradient = gradient
+//        }
+//
+//        return viewCopy
+//    }
 }

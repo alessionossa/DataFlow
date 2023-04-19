@@ -2,6 +2,7 @@
 
 import CoreGraphics
 import SwiftUI
+import Combine
 
 /// Nodes are identified by index in `Patch/nodes``.
 public typealias NodeIndex = Int
@@ -13,7 +14,6 @@ public typealias NodeId = UUID
 /// generated from your own data model, not used as your data model, so there isn't a requirement that
 /// the indices be consistent across your editing operations (such as deleting nodes).
 public protocol Node: AnyObject, ObservableObject, Hashable, Equatable {
-    associatedtype MiddleContent: View
     
     var id: NodeId { get }
     var name: String { get set }
@@ -24,7 +24,7 @@ public protocol Node: AnyObject, ObservableObject, Hashable, Equatable {
     var locked: Bool { get set }
 
     var inputs: [any PortProtocol] { get }
-    @ViewBuilder var middleView: MiddleContent? { get }
+    var middleView: AnyView? { get }
     var outputs: [any PortProtocol] { get }
     
     func indexOfOutput(_ port: OutputID) -> Array<PortProtocol>.Index?
@@ -51,32 +51,74 @@ extension Node {
     }
 }
 
-open class BaseNode<T>: Node where T: View {
-    public typealias MiddleContent = T
+open class BaseNode: Node, ObservableObject {
     
     public  var id: NodeId = UUID()
     
     public var name: String
     
-    public var position: CGPoint?
+    @Published public var position: CGPoint?
     
     public var titleBarColor: Color = .mint
     
     public var locked: Bool = false
     
-    open var inputs: [any PortProtocol] = []
+    @Published open var inputs: [any PortProtocol] = []
     
-    open var outputs: [any PortProtocol] = []
+    @Published open var outputs: [any PortProtocol] = []
     
-    open var middleView: T? = nil
+    open var middleView: AnyView? = nil
+    
+    private var inputsCancellables: Set<AnyCancellable> = []
+    
+    private var outputsCancellables: Set<AnyCancellable> = []
     
     public init(name: String, position: CGPoint? = nil) {
         self.name = name
         self.position = position
+
+        observePorts()
+    }
+    
+    private func observePorts() {
+        // Observe initial inputs
+        observeInputChildren()
+
+        // Observe changes to the inputs array itself
+        $inputs
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+                self?.observeInputChildren()
+            }
+            .store(in: &inputsCancellables)
+        
+        $outputs
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+                self?.observeInputChildren()
+            }
+            .store(in: &outputsCancellables)
+    }
+
+    private func observeInputChildren() {
+        inputsCancellables.removeAll()
+        inputs.forEach({ (input: any PortProtocol) in
+            input.forwardUpdatesTo(objectPublisher: self.objectWillChange)
+                .store(in: &inputsCancellables)
+        })
+    }
+    
+    private func observeOutputChildren() {
+        outputsCancellables.removeAll()
+        outputs.forEach({ (output: any PortProtocol) in
+            output.forwardUpdatesTo(objectPublisher: self.objectWillChange)
+                .store(in: &outputsCancellables)
+        })
     }
 }
 
-public extension Sequence where Element == any Node {
+//public extension Sequence where Element == any Node {
+public extension Sequence where Element: Node {
     subscript(withId id: NodeId) -> Element {
         get {
             guard let node = first(where: { $0.id == id }) else {

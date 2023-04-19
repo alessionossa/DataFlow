@@ -36,7 +36,7 @@ extension GraphicsContext {
 extension NodeEditor {
     @inlinable @inline(__always)
     func color(for type: PortType, isOutput: Bool) -> Color {
-        style.color(for: type, isOutput: isOutput) ?? .gray
+        .gray
     }
     
     func drawInputPort(
@@ -111,7 +111,7 @@ extension NodeEditor {
         return shading
     }
 
-    func drawNodes(cx: GraphicsContext, viewport: CGRect) {
+    func drawNodes(cx: GraphicsContext) {
 
         let connectedInputs = Set( patch.wires.map { wire in wire.input } )
         let connectedOutputs = Set( patch.wires.map { wire in wire.output } )
@@ -126,7 +126,7 @@ extension NodeEditor {
             let offset = self.offset(for: node.id)
             let rect = node.rect(layout: layout).offset(by: offset)
 
-            guard rect.intersects(viewport) else { continue }
+//            guard rect.intersects(viewport) else { continue }
 
             let pos = rect.origin
 
@@ -195,46 +195,29 @@ extension NodeEditor {
         }
     }
 
-    func drawWires(cx: GraphicsContext, viewport: CGRect) {
+    func drawWires(cx: GraphicsContext) {
         var hideWire: Wire?
         switch dragInfo {
-        case let .wire(_, _, hideWire: hw):
+        case let .wire(_, _, hideWire: hw, _):
             hideWire = hw
         default:
             hideWire = nil
         }
         for wire in patch.wires where wire != hideWire {
-            let fromNode = self.patch.nodes[withId: wire.output.nodeId]
-            guard let portIndexInFromNode = fromNode.indexOfOutput(wire.output) else { continue }
-            let fromPoint = fromNode.outputRect(
-                output: portIndexInFromNode,
-                layout: self.layout
-            )
-                .offset(by: self.offset(for: wire.output.nodeId)).center
-
-            let toNode = self.patch.nodes[withId: wire.input.nodeId]
-            guard let portIndexInToNode = toNode.indexOfInput(wire.input) else { continue }
-            let toPoint = toNode.inputRect(
-                input: portIndexInToNode,
-                layout: self.layout
-            )
-            .offset(by: self.offset(for: wire.input.nodeId)).center
-
-            let bounds = CGRect(origin: fromPoint, size: toPoint - fromPoint)
-            if viewport.intersects(bounds) {
-                let gradient = self.gradient(for: wire)
-                cx.strokeWire(from: fromPoint, to: toPoint, gradient: gradient)
-            }
+            guard let fromPoint = self.patch.nodes[portId: wire.output].frame?.center,
+                  let toPoint = self.patch.nodes[portId: wire.input].frame?.center else { continue }
+            
+            let gradient = self.gradient(for: wire)
+            cx.strokeWire(from: fromPoint, to: toPoint, gradient: gradient)
         }
     }
 
     func drawDraggedWire(cx: GraphicsContext) {
-        if case let .wire(output: output, offset: offset, _) = dragInfo {
-            let fromNode = self.patch.nodes[withId: output.nodeId]
-            guard let portIndexInFromNode = fromNode.indexOfOutput(output) else { return }
-            let outputRect = fromNode.outputRect(output: portIndexInFromNode, layout: self.layout)
+        if case let .wire(output: output, offset: offset, _, _) = dragInfo {
+            guard let fromPoint = self.patch.nodes[portId: output].frame?.center else { return }
+            
             let gradient = self.gradient(for: output)
-            cx.strokeWire(from: outputRect.center, to: outputRect.center + offset, gradient: gradient)
+            cx.strokeWire(from: fromPoint, to: fromPoint + offset, gradient: gradient)
         }
     }
 
@@ -246,10 +229,10 @@ extension NodeEditor {
     }
 
     func gradient(for outputID: OutputID) -> Gradient {
-        let portType = patch
+        let port = patch
             .nodes[portId: outputID]
-            .type
-        return style.gradient(for: portType) ?? .init(colors: [.gray])
+        
+        return port.gradient(with: style) ?? .init(colors: [.gray])
     }
 
     func gradient(for wire: Wire) -> Gradient {
