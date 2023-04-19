@@ -19,9 +19,6 @@ public struct NodeEditor: View {
     /// State for all gestures.
     @GestureState var dragInfo = DragInfo.none
 
-    /// Cache resolved text
-    @StateObject var textCache = TextCache()
-
     /// Node moved handler closure.
     public typealias NodeMovedHandler = (_ index: NodeId,
                                          _ location: CGPoint) -> Void
@@ -74,7 +71,6 @@ public struct NodeEditor: View {
                         
                         Canvas { cx, size in
                             self.drawWires(cx: cx)
-                            self.drawNodes(cx: cx)
                             self.drawDraggedWire(cx: cx)
                             self.drawSelectionRect(cx: cx)
                         }.background(.green)

@@ -35,13 +35,13 @@ public extension NodeEditor {
 
     // MARK: - Style Modifiers
 
-    /// Set the node color.
-    func nodeColor(_ color: Color) -> Self {
-        var viewCopy = self
-        viewCopy.style.nodeColor = color
-        return viewCopy
-    }
-
+//    /// Set the node color.
+//    func nodeColor(_ color: Color) -> Self {
+//        var viewCopy = self
+//        viewCopy.style.nodeColor = color
+//        return viewCopy
+//    }
+//
 //    /// Set the port color for a port type.
 //    func portColor(for portType: PortType, _ color: Color) -> Self {
 //        var viewCopy = self
