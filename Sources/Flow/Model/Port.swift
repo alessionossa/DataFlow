@@ -88,7 +88,8 @@ public protocol PortProtocol: AnyObject, ObservableObject, Identifiable {
     var name: String { get }
     var type: PortType { get }
     var frame: CGRect? { get set }
-    var value: T? { get set }
+//    var value: T? { get set }
+    var valueUpdate: ValueUpdate<T>? { get set }
     var valueType: T.Type { get }
     
     var nodeId: NodeId { get }
@@ -106,13 +107,14 @@ public protocol PortProtocol: AnyObject, ObservableObject, Identifiable {
 }
 
 /// Information for either an input or an output.
-public class Port<T>: Identifiable, ObservableObject, PortProtocol where T: Equatable {
+public class Port<T>: Identifiable, ObservableObject, PortProtocol {
     
     public let id: PortId = UUID()
     public let name: String
     public let type: PortType
     @Published public var frame: CGRect?
-    @Published public var value: T?
+//    @Published public var value: T?
+    @Published public var valueUpdate: ValueUpdate<T>?
     public var valueType: T.Type
     
     public var nodeId: NodeId
@@ -129,7 +131,7 @@ public class Port<T>: Identifiable, ObservableObject, PortProtocol where T: Equa
     
 //    var valueContainer: PortValue
     
-    public init(name: String, type: PortType, publisher: Published<T?>.Publisher? = nil, valueType: T.Type, parentNodeId: NodeId) {
+    public init(name: String, type: PortType, valueType: T.Type, parentNodeId: NodeId) {
         self.name = name
         self.type = type
         self.valueType = valueType
@@ -148,8 +150,11 @@ public class Port<T>: Identifiable, ObservableObject, PortProtocol where T: Equa
     public func connect(to outputPort: any PortProtocol) throws {
         guard type == .input else { throw PortError.wrongPortType }
         guard let port = outputPort as? Port<T> else { throw PortError.valueTypeMismatch }
-        self.portValueCancellable = port.$value.removeDuplicates().sink { [weak self] newValue in
-            self?.value = newValue
+//        self.portValueCancellable = port.$value.removeDuplicates().sink { [weak self] newValue in
+//            self?.value = newValue
+//        }
+        self.portValueCancellable = port.$valueUpdate.removeDuplicates().sink { [weak self] newValue in
+            self?.valueUpdate = newValue
         }
         
         connectedToOutputs.insert(OutputID(port.nodeId, port.id))
