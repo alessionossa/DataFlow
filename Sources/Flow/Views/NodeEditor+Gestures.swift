@@ -11,33 +11,33 @@ extension NodeEditor {
         case none
     }
 
-#if os(macOS)
-    var commandGesture: some Gesture {
-        DragGesture(minimumDistance: 0).modifiers(.command).onEnded { drag in
-            guard drag.distance < 5 else { return }
-
-            let startLocation = toLocal(drag.startLocation)
-
-            let hitResult = patch.hitTest(point: startLocation, layout: layout)
-            switch hitResult {
-            case .none:
-                return
-            case let .node(nodeIndex):
-                if selection.contains(nodeIndex) {
-                    selection.remove(nodeIndex)
-                } else {
-                    selection.insert(nodeIndex)
-                }
-            default: break
-            }
-        }
-    }
-#endif
+//#if os(macOS)
+//    var commandGesture: some Gesture {
+//        DragGesture(minimumDistance: 0).modifiers(.command).onEnded { drag in
+//            guard drag.distance < 5 else { return }
+//
+//            let startLocation = toLocal(drag.startLocation)
+//
+//            let hitResult = patch.hitTest(point: startLocation, layout: layout)
+//            switch hitResult {
+//            case .none:
+//                return
+//            case let .node(nodeIndex):
+//                if selection.contains(nodeIndex) {
+//                    selection.remove(nodeIndex)
+//                } else {
+//                    selection.insert(nodeIndex)
+//                }
+//            default: break
+//            }
+//        }
+//    }
+//#endif
 }
 
-extension DragGesture.Value {
-    @inlinable @inline(__always)
-    var distance: CGFloat {
-        startLocation.distance(to: location)
-    }
-}
+//extension DragGesture.Value {
+//    @inlinable @inline(__always)
+//    var distance: CGFloat {
+//        startLocation.distance(to: location)
+//    }
+//}
