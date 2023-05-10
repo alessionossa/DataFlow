@@ -42,11 +42,7 @@ struct ConnectorView: View {
     @State private var draggingWire: Bool = false
     
     var body: some View {
-        HStack(spacing: 4) {
-            if connector.type == .output {
-                Text(connector.name)
-                    .font(.caption)
-            }
+        VStack(spacing: 4) {
             
             ZStack(alignment: .center) {
                 GeometryReader { proxy in
@@ -72,10 +68,8 @@ struct ConnectorView: View {
             .scaleEffect((isDragging || isPossibleInput) ? 1.2 : 1.0)
             .gesture(dragGesture)
             
-            if connector.type == .input {
-                Text(connector.name)
-                    .font(.caption)
-            }
+            Text(connector.name)
+                .font(.caption)
         }
         .animation(.easeInOut, value: isDragging)
         .animation(.easeInOut, value: isPossibleInput)

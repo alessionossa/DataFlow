@@ -5,7 +5,8 @@
 //  Created by Alessio Nossa on 20/04/2023.
 //
 
-import Foundation
+import SwiftUI
+import Combine
 
 public class TriggerButtonNode: BaseNode {
     
@@ -16,7 +17,8 @@ public class TriggerButtonNode: BaseNode {
             Button("Action!", action: {
                 node.trigger.send(ValueUpdate(()))
             })
-                .frame(width: 100)
+            .buttonStyle(.borderedProminent)
+            .frame(width: 100)
         }
     }
 
@@ -29,11 +31,11 @@ public class TriggerButtonNode: BaseNode {
             Port(name: "Trigger", type: .output, valueType: Void.self, parentNodeId: id)
         ]
         
-        titleBarColor = .brown
+        titleBarColor = Color(UIColor.systemOrange)
         
         middleView = AnyView(TriggerMiddleView(node: self))
         
-        if let intOutput = outputs[0] as? Flow.Port<Void> {
+        if let intOutput = outputs[0] as? Port<Void> {
             trigger.assign(to: &intOutput.$valueUpdate)
         }
     }

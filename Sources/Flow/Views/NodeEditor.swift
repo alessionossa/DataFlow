@@ -18,6 +18,8 @@ public struct NodeEditor: View {
 
     /// State for all gestures.
     @GestureState var dragInfo = DragInfo.none
+    
+    @State var backgroundColor: Color
 
     /// Node moved handler closure.
     public typealias NodeMovedHandler = (_ index: NodeId,
@@ -40,10 +42,12 @@ public struct NodeEditor: View {
     ///   - patch: Patch to display.
     ///   - selection: Set of nodes currently selected.
     public init(patch: Patch,
+                backgroundColor: Color = .clear,
                 selection: Binding<Set<NodeId>>,
                 layout: LayoutConstants = LayoutConstants())
     {
         self.patch = patch
+        self._backgroundColor = .init(initialValue: backgroundColor)
         _selection = selection
         self.layout = layout
     }
@@ -61,15 +65,14 @@ public struct NodeEditor: View {
     public var body: some View {
         GeometryReader { geometryProxy in
             ScrollViewReader { scrollProxy in
-                ScrollView([.horizontal, .vertical], showsIndicators: false) {
+                ScrollView([.horizontal, .vertical], showsIndicators: true) {
                     ZStack {
                         
-                        Color.clear
+                        self.backgroundColor
                             .frame(width: 2000, height: 2000)
                         
-                        
-                        
                         Canvas { cx, size in
+                            self.drawDashedBackgroundLines(cx, size)
                             self.drawWires(cx: cx)
                             self.drawDraggedWire(cx: cx)
                             self.drawSelectionRect(cx: cx)
@@ -77,9 +80,19 @@ public struct NodeEditor: View {
                         
                         ForEach(patch.nodes, id: \.id) { node in
                             NodeView(node: node, gestureState: $dragInfo)
+                                .id(node.id)
                                 .fixedSize()
                         }
+                        
                     }
+                    .onReceive(patch.$nodeToShow, perform: { nodeToShow in
+                        if let nodeToShow {
+                            withAnimation {
+                                scrollProxy.scrollTo(nodeToShow.id)
+//                                patch.nodeToShow = nil
+                            }
+                        }
+                    })
                     .coordinateSpace(name: NodeEditor.kEditorCoordinateSpaceName)
                     
                 }

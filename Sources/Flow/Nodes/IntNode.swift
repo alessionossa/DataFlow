@@ -48,7 +48,7 @@ public class IntNode: BaseNode {
             Port(name: "Value", type: .output, valueType: Int.self, parentNodeId: id)
         ]
         
-        titleBarColor = .brown
+        titleBarColor = Color(UIColor.systemMint)
         
         middleView = AnyView(IntMiddleView(node: self))
         

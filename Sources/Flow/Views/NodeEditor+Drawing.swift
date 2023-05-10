@@ -24,6 +24,16 @@ extension GraphicsContext {
             style: StrokeStyle(lineWidth: 2.0, lineCap: .round)
         )
     }
+    
+    func strokeDashedLine(from startPoint: CGPoint, to endPoint: CGPoint, pattern: [CGFloat]) {
+        var path = Path()
+        path.move(to: startPoint)
+        path.addLine(to: endPoint)
+        
+        let strokeStyle = StrokeStyle(lineWidth: 1, dash: pattern)
+        
+        stroke(path, with: .color(Color.gray.opacity(0.2)), style: strokeStyle)
+    }
 }
 
 extension NodeEditor {
@@ -42,6 +52,27 @@ extension NodeEditor {
             
             let gradient = self.gradient(for: wire)
             cx.strokeWire(from: fromPoint, to: toPoint, gradient: gradient)
+        }
+    }
+    
+    func drawDashedBackgroundLines(_ cx: GraphicsContext, _ size: CGSize) {
+        let width = size.width
+        let height = size.height
+
+        // Draw vertical lines
+        for x in stride(from: 0, to: width, by: layout.backgroundlinesSpacing) {
+            let startPoint = CGPoint(x: x, y: 0)
+            let endPoint = CGPoint(x: x, y: height)
+
+            cx.strokeDashedLine(from: startPoint, to: endPoint, pattern: layout.backgroundlinesPattern)
+        }
+
+        // Draw horizontal lines
+        for y in stride(from: 0, to: height, by: layout.backgroundlinesSpacing) {
+            let startPoint = CGPoint(x: 0, y: y)
+            let endPoint = CGPoint(x: width, y: y)
+
+            cx.strokeDashedLine(from: startPoint, to: endPoint, pattern: layout.backgroundlinesPattern)
         }
     }
 

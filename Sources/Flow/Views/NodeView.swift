@@ -45,11 +45,11 @@ struct NodeView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(Color.blue)
+                .background(node.titleBarColor)
                 .gesture(dragGesture)
                 
                 HStack(alignment: .center, spacing: 8) {
-                    VStack {
+                    VStack(alignment: .center) {
                         ForEach(node.inputs, id: \.id) { input in
                             ConnectorView(connector: input, gestureState: gestureState)
                         }
@@ -60,7 +60,7 @@ struct NodeView: View {
                         AnyView(middleView)
                     }
                     
-                    VStack(alignment: .trailing) {
+                    VStack(alignment: .center) {
                         ForEach(node.outputs, id: \.id) { output in
                             ConnectorView(connector: output, gestureState: gestureState)
                         }
@@ -76,7 +76,7 @@ struct NodeView: View {
                     .opacity(0.6)
             )
 #endif
-#if canImport(AppKit)
+#if os(macOS)
             .background(
                 Color(NSColor.textBackgroundColor)
                     .opacity(0.6)
