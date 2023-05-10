@@ -7,6 +7,11 @@
 
 import SwiftUI
 import Combine
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 public class TriggerButtonNode: BaseNode {
     
@@ -31,7 +36,11 @@ public class TriggerButtonNode: BaseNode {
             Port(name: "Trigger", type: .output, valueType: Void.self, parentNodeId: id)
         ]
         
+        #if canImport(UIKit)
         titleBarColor = Color(UIColor.systemOrange)
+        #elseif canImport(AppKit)
+        titleBarColor = Color(NSColor.systemOrange)
+        #endif
         
         middleView = AnyView(TriggerMiddleView(node: self))
         

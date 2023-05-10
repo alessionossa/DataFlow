@@ -7,6 +7,11 @@
 
 import SwiftUI
 import Combine
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 public class StringNode: BaseNode {
     
@@ -34,7 +39,11 @@ public class StringNode: BaseNode {
             Port(name: "Value", type: .output, valueType: String.self, parentNodeId: id)
         ]
         
+        #if canImport(UIKit)
         titleBarColor = Color(UIColor.systemTeal)
+        #elseif canImport(AppKit)
+        titleBarColor = Color(NSColor.systemTeal)
+        #endif
         
         middleView = AnyView(StringMiddleView(node: self))
         
