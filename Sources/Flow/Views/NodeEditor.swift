@@ -7,36 +7,26 @@ import SwiftUI
 /// Draws everything using a single Canvas with manual layout. We found this is faster than
 /// using a View for each Node.
 public struct NodeEditor: View {
+    
+    static let kEditorCoordinateSpaceName = "node-editor-coordinate-space"
+    
     /// Data model.
-    @Binding var patch: Patch
+    @ObservedObject var patch: Patch
 
     /// Selected nodes.
-    @Binding var selection: Set<NodeIndex>
+    @Binding var selection: Set<NodeId>
 
     /// State for all gestures.
     @GestureState var dragInfo = DragInfo.none
-
-    /// Cache resolved text
-    @StateObject var textCache = TextCache()
+    
+    @State var backgroundColor: Color
 
     /// Node moved handler closure.
-    public typealias NodeMovedHandler = (_ index: NodeIndex,
+    public typealias NodeMovedHandler = (_ index: NodeId,
                                          _ location: CGPoint) -> Void
 
     /// Called when a node is moved.
     var nodeMoved: NodeMovedHandler = { _, _ in }
-
-    /// Wire added handler closure.
-    public typealias WireAddedHandler = (_ wire: Wire) -> Void
-
-    /// Called when a wire is added.
-    var wireAdded: WireAddedHandler = { _ in }
-
-    /// Wire removed handler closure.
-    public typealias WireRemovedHandler = (_ wire: Wire) -> Void
-
-    /// Called when a wire is removed.
-    var wireRemoved: WireRemovedHandler = { _ in }
     
     /// Handler for pan or zoom.
     public typealias TransformChangedHandler = (_ pan: CGSize, _ zoom: CGFloat) -> Void
@@ -51,11 +41,13 @@ public struct NodeEditor: View {
     /// - Parameters:
     ///   - patch: Patch to display.
     ///   - selection: Set of nodes currently selected.
-    public init(patch: Binding<Patch>,
-                selection: Binding<Set<NodeIndex>>,
+    public init(patch: Patch,
+                backgroundColor: Color = .clear,
+                selection: Binding<Set<NodeId>>,
                 layout: LayoutConstants = LayoutConstants())
     {
-        _patch = patch
+        self.patch = patch
+        self._backgroundColor = .init(initialValue: backgroundColor)
         _selection = selection
         self.layout = layout
     }
@@ -71,26 +63,47 @@ public struct NodeEditor: View {
     @State var mousePosition: CGPoint = CGPoint(x: CGFloat.infinity, y: CGFloat.infinity)
 
     public var body: some View {
-        ZStack {
-            Canvas { cx, size in
-
-                let viewport = CGRect(origin: toLocal(.zero), size: toLocal(size))
-                cx.addFilter(.shadow(radius: 5))
-                
-                cx.scaleBy(x: CGFloat(zoom), y: CGFloat(zoom))
-                cx.translateBy(x: pan.width, y: pan.height)
-                
-                self.drawWires(cx: cx, viewport: viewport)
-                self.drawNodes(cx: cx, viewport: viewport)
-                self.drawDraggedWire(cx: cx)
-                self.drawSelectionRect(cx: cx)
+        GeometryReader { geometryProxy in
+            ScrollViewReader { scrollProxy in
+                ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                    ZStack {
+                        
+                        self.backgroundColor
+                            .frame(width: 2000, height: 2000)
+                        
+                        Canvas { cx, size in
+                            self.drawDashedBackgroundLines(cx, size)
+                            self.drawWires(cx: cx)
+                            self.drawDraggedWire(cx: cx)
+                            self.drawSelectionRect(cx: cx)
+                        }
+                        
+                        ForEach(patch.nodes, id: \.id) { node in
+                            NodeView(node: node, gestureState: $dragInfo)
+                                .id(node.id)
+                                .fixedSize()
+                        }
+                        
+                    }
+                    .onReceive(patch.$nodeToShow, perform: { nodeToShow in
+                        if let nodeToShow {
+                            withAnimation {
+                                scrollProxy.scrollTo(nodeToShow.id)
+//                                patch.nodeToShow = nil
+                            }
+                        }
+                    })
+                    .coordinateSpace(name: NodeEditor.kEditorCoordinateSpaceName)
+                    
+                }
             }
-            WorkspaceView(pan: $pan, zoom: $zoom, mousePosition: $mousePosition)
-                #if os(macOS)
-                .gesture(commandGesture)
-                #endif
-                .gesture(dragGesture)
         }
+//            WorkspaceView(pan: $pan, zoom: $zoom, mousePosition: $mousePosition)
+//                #if os(macOS)
+//                .gesture(commandGesture)
+//                #endif
+//                .gesture(dragGesture)
+        .environmentObject(patch)
         .onChange(of: pan) { newValue in
             transformChanged(newValue, zoom)
         }

@@ -1,57 +1,65 @@
 import Flow
 import SwiftUI
+import Combine
+
 
 func simplePatch() -> Patch {
-    let generator = Node(name: "generator", titleBarColor: Color.cyan, outputs: ["out"])
-    let processor = Node(name: "processor", titleBarColor: Color.red, inputs: ["in"], outputs: ["out"])
-    let mixer = Node(name: "mixer", titleBarColor: Color.gray, inputs: ["in1", "in2"], outputs: ["out"])
-    let output = Node(name: "output", titleBarColor: Color.purple, inputs: ["in"])
-
-    let nodes = [generator, processor, generator, processor, mixer, output]
-
-    let wires = Set([Wire(from: OutputID(0, 0), to: InputID(1, 0)),
-                     Wire(from: OutputID(1, 0), to: InputID(4, 0)),
-                     Wire(from: OutputID(2, 0), to: InputID(3, 0)),
-                     Wire(from: OutputID(3, 0), to: InputID(4, 1)),
-                     Wire(from: OutputID(4, 0), to: InputID(5, 0))])
-
-    var patch = Patch(nodes: nodes, wires: wires)
-    patch.recursiveLayout(nodeIndex: 5, at: CGPoint(x: 800, y: 50))
+    let int1 = IntNode(name: "Integer 1")
+    let int2 = IntNode(name: "Integer 2")
+    
+    let nodes = [int1, int2]
+    
+    let wires = Set([
+        Wire(from: OutputID(int1, \.[0]), to: InputID(int2, \.[0]))
+    ])
+    
+    let patch = Patch(nodes: nodes, wires: wires)
+    patch.recursiveLayout(nodeId: int2.id, at: CGPoint(x: 600, y: 50))
     return patch
 }
 
 /// Bit of a stress test to show how Flow performs with more nodes.
 func randomPatch() -> Patch {
-    var randomNodes: [Node] = []
+    var randomNodes: [BaseNode] = []
+    
     for n in 0 ..< 50 {
         let randomPoint = CGPoint(x: 1000 * Double.random(in: 0 ... 1),
                                   y: 1000 * Double.random(in: 0 ... 1))
-        randomNodes.append(Node(name: "node\(n)",
-                                position: randomPoint,
-                                inputs: ["In"],
-                                outputs: ["Out"]))
+        randomNodes.append(IntNode(name: "Integer \(n)", position: randomPoint))
     }
 
     var randomWires: Set<Wire> = []
     for n in 0 ..< 50 {
-        randomWires.insert(Wire(from: OutputID(n, 0), to: InputID(Int.random(in: 0 ... 49), 0)))
+        randomWires.insert(
+            Wire(
+                from: OutputID(randomNodes[n], \.[0]),
+                to: InputID(randomNodes[Int.random(in: 0 ... 49)], \.[0])
+            )
+        )
     }
     return Patch(nodes: randomNodes, wires: randomWires)
 }
 
 struct ContentView: View {
-    @State var patch = simplePatch()
-    @State var selection = Set<NodeIndex>()
+    @StateObject var patch = simplePatch()
+    @State var selection = Set<NodeId>()
 
     func addNode() {
-        let newNode = Node(name: "processor", titleBarColor: Color.red, inputs: ["in"], outputs: ["out"])
+        let newNode = IntNode(name: "Integer")
         patch.nodes.append(newNode)
     }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            NodeEditor(patch: $patch, selection: $selection)
+            NodeEditor(patch: patch, selection: $selection)
+                .onWireAdded { wire in
+                    print("Added wire: \(wire)")
+                }
+                .onWireRemoved { wire in
+                    print("Removed wire: \(wire)")
+                }
             Button("Add Node", action: addNode).padding()
         }
     }
+    
 }
