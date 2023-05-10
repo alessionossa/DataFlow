@@ -73,7 +73,7 @@ public struct NodeEditor: View {
                             self.drawWires(cx: cx)
                             self.drawDraggedWire(cx: cx)
                             self.drawSelectionRect(cx: cx)
-                        }.background(.green)
+                        }
                         
                         ForEach(patch.nodes, id: \.id) { node in
                             NodeView(node: node, gestureState: $dragInfo)
