@@ -27,7 +27,9 @@ public class Patch: ObservableObject {
     
     @Published public var nodes: [BaseNode]
     
-    @Published var wires: Set<Wire>
+    @Published private(set) var wires: Set<Wire>
+    
+    @Published var nodeToShow: BaseNode?
 
     public init(nodes: [BaseNode], wires: Set<Wire>) {
         self.nodes = nodes
@@ -38,6 +40,14 @@ public class Patch: ObservableObject {
         }
         
         observeNotes()
+    }
+    
+    func reset() {
+        self.wires = Set<Wire>()
+        self.nodes = []
+        self.nodesCancellables.forEach { cancellable in
+            cancellable.cancel()
+        }
     }
     
     private var nodesCancellables: Set<AnyCancellable> = []
