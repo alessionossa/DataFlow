@@ -38,11 +38,14 @@ struct NodeView: View {
     
     var body: some View {
         GeometryReader { geometryProxy in
-            VStack {
+            VStack(spacing: 0) {
                 HStack {
                     Text(node.name)
                         .font(.headline)
+                        .lineLimit(nil)
+                        .padding(.horizontal, 8)
                 }
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(node.titleBarColor)
@@ -67,8 +70,9 @@ struct NodeView: View {
                     }
                     .padding(.trailing, 8)
                 }
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.vertical, 16)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
 #if canImport(UIKit)
             .background(
@@ -83,9 +87,10 @@ struct NodeView: View {
             )
 #endif
             .cornerRadius(8)
+            .frame(maxWidth: 500)
             .shadow(radius: 5)
             .scaleEffect(dragging ? 1.1 : 1.0)
-            .fixedSize()
+            .fixedSize(horizontal: true, vertical: false)
             .position(currentNodePosition ?? .zero)
             .animation(.easeInOut, value: dragging)
             .onAppear {
