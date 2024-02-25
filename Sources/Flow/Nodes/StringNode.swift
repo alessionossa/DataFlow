@@ -55,4 +55,8 @@ public class StringNode: BaseNode {
             $valueUpdate.assign(to: &intOutput.$valueUpdate)
         }
     }
+    
+    public func setValue(_ newString: String) {
+        self.valueUpdate = .init(newString)
+    }
 }

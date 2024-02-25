@@ -44,8 +44,18 @@ struct ContentView: View {
     @StateObject var patch = simplePatch()
     @State var selection = Set<NodeId>()
 
-    func addNode() {
-        let newNode = IntNode(name: "Integer")
+    func addNode(type: DemoNodeType) {
+        let newNode: BaseNode
+        switch type {
+        case .integer:
+            newNode = IntNode(name: "Integer")
+        case .string:
+            let stringNode = StringNode(name: "")
+            stringNode.setValue("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent at tortor egestas ante ultricies lobortis. Cras fringilla, turpis id volutpat mollis, ligula metus egestas ante, sed fringilla ex sapien in elit.")
+            newNode = stringNode
+        case .trigger:
+            newNode = TriggerButtonNode(name: "Trigger")
+        }
         patch.nodes.append(newNode)
     }
 
@@ -58,8 +68,26 @@ struct ContentView: View {
                 .onWireRemoved { wire in
                     print("Removed wire: \(wire)")
                 }
-            Button("Add Node", action: addNode).padding()
+            
+            Menu("Add node") {
+                Button(action: { addNode(type: .integer) }) {
+                    Label("Add Integer Node", systemImage: "number")
+                }
+                
+                Button(action: { addNode(type: .string) }) {
+                    Label("Add Text Node", systemImage: "textformat")
+                }
+                
+                Button(action: { addNode(type: .trigger) }) {
+                    Label("Add Trigger Node", systemImage: "button.programmable")
+                }
+            }
+            .padding()
         }
     }
     
+}
+
+enum DemoNodeType {
+    case integer, string, trigger
 }
