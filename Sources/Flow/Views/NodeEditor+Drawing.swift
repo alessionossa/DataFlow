@@ -41,7 +41,7 @@ extension NodeEditor {
     func drawWires(cx: GraphicsContext) {
         var hideWire: Wire?
         switch dragInfo {
-        case let .wire(_, _, hideWire: hw, _):
+        case let .wire(_, _, hideWire: hw, _, _):
             hideWire = hw
         default:
             hideWire = nil
@@ -77,7 +77,7 @@ extension NodeEditor {
     }
 
     func drawDraggedWire(cx: GraphicsContext) {
-        if case let .wire(output: output, offset: offset, _, _) = dragInfo {
+        if case let .wire(output: output, offset: offset, _, _, _) = dragInfo {
             guard let fromPoint = self.patch.nodes[portId: output].frame?.center else { return }
             
             let gradient = self.gradient(for: output)

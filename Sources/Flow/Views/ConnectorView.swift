@@ -15,16 +15,24 @@ struct ConnectorView: View {
     var gestureState: GestureState<NodeEditor.DragInfo>
     
     var isDragging: Bool {
-        if case let NodeEditor.DragInfo.wire(outputId, _, _, _) = gestureState.wrappedValue {
+        if case let NodeEditor.DragInfo.wire(outputId, _, _, _, _) = gestureState.wrappedValue {
             return (outputId.portId == connector.id) && (outputId.nodeId == connector.nodeId)
         }
         return false
     }
     
     var isPossibleInput: Bool {
-        if case let NodeEditor.DragInfo.wire(_, _, _, possibleInputId) = gestureState.wrappedValue,
+        if case let NodeEditor.DragInfo.wire(_, _, _, possibleInputId, _) = gestureState.wrappedValue,
            let possibleInputId {
             return (possibleInputId.portId == connector.id) && (possibleInputId.nodeId == connector.nodeId)
+        }
+        return false
+    }
+    
+    var isCurrentPositinInput: Bool {
+        if case let NodeEditor.DragInfo.wire(_, _, _, _, currentPositionInputId) = gestureState.wrappedValue,
+           let currentPositionInputId {
+            return (currentPositionInputId.portId == connector.id) && (currentPositionInputId.nodeId == connector.nodeId)
         }
         return false
     }
@@ -47,7 +55,7 @@ struct ConnectorView: View {
             ZStack(alignment: .center) {
                 GeometryReader { proxy in
                     Circle()
-                        .fill(Color.red)
+                        .fill(Color.mint)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .onAppear {
                             connector.frame = proxy.frame(in: .named(NodeEditor.kEditorCoordinateSpaceName))
@@ -64,6 +72,12 @@ struct ConnectorView: View {
                 }
                 
             }
+            .overlay {
+                if isCurrentPositinInput {
+                    Circle()
+                        .fill(isPossibleInput ? .green : .red)
+                }
+            }
             .frame(width: 20, height: 20)
             .scaleEffect((isDragging || isPossibleInput) ? 1.2 : 1.0)
             .gesture(dragGesture)
@@ -74,6 +88,7 @@ struct ConnectorView: View {
         .animation(.easeInOut, value: isDragging)
         .animation(.easeInOut, value: isPossibleInput)
         .animation(.easeInOut, value: isConnected)
+        .animation(.easeInOut, value: isCurrentPositinInput)
     }
     
     var dragGesture: some Gesture {
@@ -90,20 +105,25 @@ struct ConnectorView: View {
                     // (inputCenter - outputCenter) + dragValue.translation - (inputCenter - dragValue.startLocation)
                     let originDifference = connectorFrame.center - dragValue.startLocation
                     let offset = (connectorFrame.center - outputFrame.center) + dragValue.translation - originDifference
-                    let possibleInputPortId = findPossibleInputPortId(outputFrame: outputFrame, offset: offset)
+                    let currentPositionInput = inputPort(in: outputFrame, offset: offset)
+                    let possibleInputPortId = findPossibleInputPortId(inputPort: currentPositionInput)
+                    let currentPositionInputId = inputPortId(inputPort: currentPositionInput)
                     
                     dragState = .wire(output: attachedWire.output,
                                       offset: offset,
                                       hideWire: attachedWire,
-                                      possibleInputId: possibleInputPortId)
+                                      possibleInputId: possibleInputPortId,
+                                      currentPositionInputId: currentPositionInputId)
                 case .output:
                     let outputId = OutputID(connector.nodeId, connector.id)
                     guard let connectorFrame = connector.frame else { return }
                     let originDifference = connectorFrame.center - dragValue.startLocation
                     let offset = dragValue.translation - originDifference
-                    let possibleInputPortId = findPossibleInputPortId(outputFrame: connectorFrame, offset: offset)
+                    let currentPositionInput = inputPort(in: connectorFrame, offset: offset)
+                    let possibleInputPortId = findPossibleInputPortId(inputPort: currentPositionInput)
+                    let currentPositionInputId = inputPortId(inputPort: currentPositionInput)
                     
-                    dragState = NodeEditor.DragInfo.wire(output: outputId, offset: offset, possibleInputId: possibleInputPortId)
+                    dragState = NodeEditor.DragInfo.wire(output: outputId, offset: offset, possibleInputId: possibleInputPortId, currentPositionInputId: currentPositionInputId)
                 }
             })
             .onEnded { value in
@@ -141,7 +161,7 @@ struct ConnectorView: View {
             }
     }
     
-    func findPossibleInputPort(outputFrame: CGRect, offset: CGSize) -> (any PortProtocol)? {
+    func inputPort(in outputFrame: CGRect, offset: CGSize) -> (any PortProtocol)? {
         let point = outputFrame.center + offset
         var inputPort: (any PortProtocol)?
         _ = patch.nodes.reversed().first { node in
@@ -150,6 +170,29 @@ struct ConnectorView: View {
             }
             return inputPort != nil
         }
+        
+        return inputPort
+    }
+    
+    func inputPortId(inputPort: (any PortProtocol)?) -> InputID? {
+        guard let inputPort else { return nil }
+        return InputID(inputPort.nodeId, inputPort.id)
+    }
+    
+    func findPossibleInputPort(inputPort: (any PortProtocol)?) -> (any PortProtocol)? {
+        guard let inputPort, inputPort.canConnectTo(port: connector) else { return nil }
+        return inputPort
+    }
+    
+    func findPossibleInputPortId(inputPort: (any PortProtocol)?) -> InputID? {
+        guard let possibleInputPort = findPossibleInputPort(inputPort: inputPort) else {
+            return nil
+        }
+        return InputID(possibleInputPort.nodeId, possibleInputPort.id)
+    }
+    
+    func findPossibleInputPort(outputFrame: CGRect, offset: CGSize) -> (any PortProtocol)? {
+        let inputPort = inputPort(in: outputFrame, offset: offset)
         
         guard let inputPort, inputPort.canConnectTo(port: connector) else { return nil }
         return inputPort

@@ -139,6 +139,12 @@ public class Port<T>: Identifiable, ObservableObject, PortProtocol {
         self.nodeId = parentNodeId
     }
     
+    /// Determines wether or not a port can connect to this port. Default implementation returns `true` if
+    /// the ports are of the same type.
+    ///
+    /// The implementation can be overridden if the port is able to accept also other type of inputs.
+    /// - Parameter port: The ports that wants to connect to the istance.
+    /// - Returns: `true` if the istance can accept input from `port`
     public func canConnectTo(port: any PortProtocol) -> Bool {
         if port is Port<T> {
             return true

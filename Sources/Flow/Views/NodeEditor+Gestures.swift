@@ -5,7 +5,7 @@ import SwiftUI
 extension NodeEditor {
     /// State for all gestures.
     enum DragInfo: Equatable {
-        case wire(output: OutputID, offset: CGSize = .zero, hideWire: Wire? = nil, possibleInputId: InputID? = nil)
+        case wire(output: OutputID, offset: CGSize = .zero, hideWire: Wire? = nil, possibleInputId: InputID? = nil, currentPositionInputId: InputID? = nil)
         case node(id: NodeId, offset: CGSize = .zero)
         case selection(rect: CGRect = .zero)
         case none
